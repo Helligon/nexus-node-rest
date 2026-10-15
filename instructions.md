@@ -385,7 +385,7 @@ Keep type declarations inside these runtime modules. Do not create type-only mod
 
 `backend/src/server.ts`:
 - reads `PORT` and `CORS_ORIGIN`;
-- builds the app with `InMemoryAssetRepository`, `consoleLogger`, `() => new Date()` and `randomUUID` from `node:crypto`, and listens;
+- builds the app with `InMemoryAssetRepository`, `consoleLogger`, `() => new Date()` and `randomUUID` from `node:crypto`, and listens on `PORT` with no host argument (`app.listen(port)`), so it accepts IPv4 and IPv6 connections;
 - on `listen` errors, `uncaughtException` and `unhandledRejection`, calls `consoleLogger.error` and exits with code 1;
 - closes the server on `SIGTERM` and `SIGINT`;
 - logs nothing on startup.
@@ -500,7 +500,7 @@ Work in `frontend/`. The page reaches the backend through `/api`, using the Vite
 export type AssetStatus = 'available' | 'on_loan' | 'lost';
 export interface Asset { id: string; title: string; author: string; isbn: string | null; status: AssetStatus; createdAt: string }
 export interface NewAsset { title: string; author: string; isbn?: string | null; status?: AssetStatus }
-export interface AssetFilters { author?: string; status?: AssetStatus; q?: string }
+export interface AssetFilterValues { author?: string; status?: AssetStatus; q?: string }
 export interface FieldIssue { field: string; issue: string }
 export class ApiError extends Error {
   constructor(status: number | null, code: string, message: string, details?: FieldIssue[]);
@@ -516,7 +516,7 @@ export function attachLogging(instance: AxiosInstance): AxiosInstance;
 export const http: AxiosInstance; // axios.create({ baseURL: import.meta.env.VITE_API_URL ?? '/api', timeout: 10000 }) + attachLogging
 
 // frontend/src/api/assets.ts
-export function listAssets(filters: AssetFilters): Promise<Asset[]>; // GET /assets; filters go in `params`; empty values omitted
+export function listAssets(filters: AssetFilterValues): Promise<Asset[]>; // GET /assets; filters go in `params`; empty values omitted
 export function createAsset(input: NewAsset): Promise<Asset>;        // POST /assets; an empty isbn is omitted
 // Both turn axios errors into ApiError: the HTTP status and the body's error.code/message/details,
 // or status null and code 'NETWORK_ERROR' when there was no response.
