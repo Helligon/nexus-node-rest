@@ -54,6 +54,7 @@ Each of these mistakes is easy to make. The reference in parentheses points to w
 - Don't send filters that are empty after trimming (Phase 3, §3.1).
 - Don't route OPTIONS yourself; cors answers it (§4.2).
 - Don't strip tabs, non-breaking spaces or other dashes from an ISBN. Remove only `/[ -]/g` (U+0020 space and U+002D hyphen-minus) (§4.1).
+- Don't read query parameters from `req.query` — use `URLSearchParams` on the raw query string so order and repeats are exact (§4.7).
 - Don't report an empty key as `field: ""`. Use `body` or `query` (§4.7).
 - Don't show **Loading…** in place of the table on a reload, let a stale response overwrite a newer one, or abort requests (Phase 3, §3.2).
 - Don't rely only on in-process tests — run the conformance suite against `backend/dist/server.js` (Phase 2, §2.5).
@@ -201,7 +202,7 @@ Rules:
 - A body that is not an object gets only the `body` issue.
 - A body key `""` is reported with `field: "body"` and issue `is not allowed`; a query key `""` (e.g. `?=x`) is reported with `field: "query"` and issue `is not a supported filter`. No detail ever has an empty `field`.
 - Order of `details` for a body: `title`, `author`, `isbn`, `status`, then unknown fields in the order they appear in the input.
-- Order of `details` for a query: `author`, `status`, `q`, then unknown parameters in the order they first appear in the query string.
+- Order of `details` for a query: `author`, `status`, `q`, then unknown parameters in the order of first appearance in the raw query string, as given by iterating the keys of `URLSearchParams`. Never iterate `req.query` or another plain object, because JavaScript orders integer-like keys first (`?zz=1&5=x` gives `zz` then `5`). Detect a repeated parameter with `getAll(key).length > 1`.
 
 ## 5. Target layout
 
@@ -460,7 +461,7 @@ export type ParseResult<T> = { ok: true; value: T } | { ok: false; issues: Field
 export function normaliseIsbn(raw: string): string;
 export function isValidIsbn(normalised: string): boolean;
 export function parseNewAsset(body: unknown): ParseResult<NewAsset>;                          // uses Zod; never throws; undefined is treated exactly like {}
-export function parseAssetFilter(query: Record<string, unknown>): ParseResult<AssetFilter>;  // never throws
+export function parseAssetFilter(query: URLSearchParams): ParseResult<AssetFilter>;  // never throws; the route builds it with new URLSearchParams(req.originalUrl.split('?')[1] ?? '') and never uses req.query
 
 // backend/src/repo/asset-repository.ts
 export interface AssetRepository {
@@ -552,10 +553,11 @@ Domain (`test/domain/`):
    - `undefined`, which gives the same issues as `{}` (fields `title` and `author`);
    - a `title` of 100 `📚` is accepted and one of 101 is too long (§4.1).
    Every issue text is exactly as in §4.7. Several problems produce one issue per field, in the §4.7 order.
-5. `parseAssetFilter`:
+5. `parseAssetFilter` (build every input with `new URLSearchParams(...)`):
    - `{}` → `{}`;
    - each valid filter is trimmed and returned;
-   - errors for: an unknown key, an empty key (`?=x`, field `query`), a repeated key (array value), a value blank after trimming, `author` > 100, `q` > 200, an invalid `status`, with the §4.7 issue texts and order.
+   - errors for: an unknown key, an empty key (`?=x`, field `query`), a repeated key (`author=a&author=b`), a value blank after trimming, `author` > 100, `q` > 200, an invalid `status`, with the §4.7 issue texts and order;
+   - `zz=1&5=x` → details `zz` then `5` (query order, not object-key order).
 
 Repository (`test/repo/`):
 6. `add`, then `findById` / `findByIsbn`; a missing value gives `undefined`.
