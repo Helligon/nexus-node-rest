@@ -294,3 +294,40 @@ or query values. Tests assert this by spying on the logger/console.
   Docker; Phase 5 is marked skippable *with an explicit note in BUILD_REPORT*,
   never skipped silently.
 - **Harness cost/time**: each run is a full agent build; N defaults to 3.
+
+---
+
+## 4. Amendments made during planning (2026-10-15)
+
+These supersede the sections above where they conflict.
+
+1. **Node 24 LTS**, not 22. Node 24 is the active LTS line; 22 is in maintenance.
+2. **Pinned versions are at least 14 days old** when pinned (supply-chain cooldown), and every
+   `npm install`/`npm ci` uses `--ignore-scripts`.
+3. **More files are VERBATIM.** Besides the contract and acceptance suite, all configuration is
+   pinned verbatim: every `package.json` (this replaces "Appendix C dependency list"), tsconfigs,
+   ESLint, Vitest/Vite configs, Dockerfiles, nginx config, Compose file, `.gitignore`/`.dockerignore`.
+   The agent writes application source and tests only.
+4. **Pinned files are extracted, not retyped.** The agent hand-writes one ~30-line script
+   (`scripts/verbatim.mjs`) that extracts every VERBATIM block from `instructions.md` and can later
+   check them. This removes transcription errors as a source of variance.
+5. **Phases renumbered**: 0 Preflight · 1 Extract pinned files and install · 2 Backend (TDD) ·
+   3 Frontend · 4 Containers · 5 Final verification and report. The old "Contract" phase is part of Phase 1.
+6. **`405 METHOD_NOT_ALLOWED`** with an `Allow` header for wrong methods on known paths (REST
+   convention), alongside `404` for unknown paths.
+7. **An empty POST body with a JSON content type is treated as `{}`** (so the errors are for
+   `title`/`author`). This matches Express's body parser and avoids a special case.
+8. **Error log lines are only for unexpected failures** (anything that becomes a 500, plus
+   process-level errors). Client mistakes (4xx) only produce the HTTP response line.
+9. **Eval sandbox has no Docker.** The agent container cannot run Docker, so in eval runs the agent
+   records Phase 4 as skipped. The harness then runs the Phase 4 gate on the host with *our* copy of
+   the acceptance suite, and only if the verbatim check passed (so we never build Dockerfiles that
+   differ from ours).
+10. **Scoring runs in a container** (`shelfwright-scorer`), because generated code should not run
+    on the host and its `node_modules` are Linux builds.
+11. **Tooling lives in `shelfwright/`.** The repo root stays free for the reference build that
+    Finalising will commit.
+12. **A golden fake server** (`shelfwright/fixtures/golden-server.ts`, plain `node:http`) implements
+    the contract independently. It is used to prove the acceptance suite, probe and log checker are
+    correct *before* spending agent runs, and its probe output is the accuracy baseline that every
+    run is compared against.
