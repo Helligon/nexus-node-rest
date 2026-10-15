@@ -331,3 +331,24 @@ These supersede the sections above where they conflict.
     the contract independently. It is used to prove the acceptance suite, probe and log checker are
     correct *before* spending agent runs, and its probe output is the accuracy baseline that every
     run is compared against.
+
+---
+
+## 5. Decisions recorded by the examiner (2026-10-15)
+
+| Decision | Reason |
+|---|---|
+| **Exact package versions** everywhere (no ranges). | Exact versions are known to be safe. Pinning avoids pulling a newly published compromised release, a risk that is more common now that agents install packages autonomously. |
+| **Docker is used to evaluate the agent** (sandboxed builder runs, isolated scoring). **Whether to containerise the app itself is decided at the end** (Finalising), not built into Shelfwright now. | Sandboxing untrusted, agent-written code is a requirement for evaluation; app containerisation is a delivery choice best made once the app is proven. |
+| **The scorer cannot be fooled by a run editing its own oracle.** | The oracle (acceptance suite, golden baseline) lives only in the evaluator and is never shipped inside a build. Scoring re-runs every check independently. |
+| **Evaluation lives outside Shelfwright**, above the agent and the app in the file structure. | Shelfwright stays a clean deliverable; the oracle is written once, not re-created in every build. |
+| **A different agent scores the work** than the one that built it. | Independence: a builder grading itself has every incentive and blind spot to pass itself. |
+| **The agent writes its own contract tests** from `contract/openapi.yaml` and the required endpoints, test-first (TDD). Verbatim content is cut to the minimum. | Less copied code; the agent proves it can derive tests from a contract, and the hidden oracle checks the result. |
+
+## 6. Production features omitted from the tech demo
+
+These would be added for a real application. They are recorded here and in `instructions.md` (decisions log) so the omission is visible, not accidental.
+
+1. **A real database**: SQLite for small scale, PostgreSQL for larger deployments, behind the existing `AssetRepository` interface.
+2. **Bulk CSV import** of a large number of books through the API (for example a `POST /assets/import` accepting `text/csv`, validated row by row, with a per-row error report).
+3. Authentication and authorisation (already noted in the decisions log).
