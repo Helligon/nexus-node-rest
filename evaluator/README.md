@@ -5,7 +5,7 @@ app; nothing here is ever visible to a builder.
 
 ## Design rules
 
-1. **No hidden requirements.** Every check traces to a sentence in `instructions.md`. Manifest checks read the run's own copy.
+1. **No hidden requirements.** Every check traces to a sentence in `instructions.md`. Manifest checks read the canonical `instructions.md`, and the run's copy must be byte-identical to it.
 2. **A run cannot pass by editing its own checks.** The acceptance suite and golden baseline never ship in a build. Every gate is re-run here. Coverage is read from the report, the contract is hash-compared, and source is scanned for suppressions.
 3. **A different agent scores.** The scorer agent is a separate session, by default on a different model from the builder. It sees the build read-only and never sees the builder transcript.
 4. **Facts, advice, verdict.** `checks.json` is fact. `scorecard.md` is the scorer agent's advice. The examiner's `review.md` verdict is final.
@@ -14,7 +14,9 @@ app; nothing here is ever visible to a builder.
 ## Prerequisites
 
 - Docker Desktop running.
-- `ANTHROPIC_API_KEY`, or `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`.
+- `ANTHROPIC_API_KEY`: use a dedicated key in a separate workspace with a spend cap, and revoke it after the round.
+  If you use `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` instead, revoke or rotate it after the round:
+  it is present in the builder sandbox, where code the agent runs can read it.
 - `npm install --ignore-scripts` in `evaluator/` and `shelfwright/`.
 
 ## A round
@@ -26,7 +28,7 @@ app; nothing here is ever visible to a builder.
    - `run-checks` writes `checks.json`;
    - the scorer agent writes `scorecard.md`.
 4. Open `rounds/<round>/review.md`. Work through each run and write your verdict. A failing `npm audit` appears there as an advisory finding, not a gate failure.
-5. Scan transcripts for secrets before committing (e.g. `grep -rE 'sk-ant-|ANTHROPIC_API_KEY=|CLAUDE_CODE_OAUTH_TOKEN=' rounds/<round>`), then commit the round evidence.
+5. Scan transcripts for secrets before committing (e.g. `grep -rE 'sk-ant-|ANTHROPIC_API_KEY=|CLAUDE_CODE_OAUTH_TOKEN=' rounds/<round>`), then commit the round evidence. Transcripts and stderr logs are git-ignored by default; commit them (`git add -f`) only after the secrets scan.
 6. Make the approved changes in `../shelfwright`, run `npm run assemble`, and log each one in `CHANGELOG.md`.
 7. Done when one round of 3 runs is all PASS and matches golden.
 

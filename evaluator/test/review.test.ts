@@ -58,9 +58,9 @@ describe('review', () => {
     const round = makeRound();
     writeFileSync(join(round, 'diff.json'), JSON.stringify(diffRound(round, golden)));
     const review = renderReview(round);
-    expect(review).toContain('| run-1 | 0 | PASS | PASS | PASS | 2/2 | PASS | PASS | PASS | PASS | SHIP |');
-    expect(review).toContain('| run-2 | 0 | FAIL | PASS | FAIL | 1/2 | FAIL | FAIL | PASS | FAIL | missing |');
-    expect(review).toContain('| run-3 | 124 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | FAIL | missing |');
+    expect(review).toContain('| run-1 | 0 | n/a | PASS | PASS | PASS | 2/2 | PASS | PASS | PASS | PASS | SHIP |');
+    expect(review).toContain('| run-2 | 0 | n/a | FAIL | PASS | FAIL | 1/2 | FAIL | FAIL | PASS | FAIL | missing |');
+    expect(review).toContain('| run-3 | 124 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | FAIL | missing |');
     expect(review).toContain('backend/test/a.test.ts:3: skipped or focused test');
     expect(review).toContain('**Verdict (PASS / FAIL):**');
     expect(review.match(/### Examiner checklist/g)).toHaveLength(3);
@@ -72,7 +72,7 @@ describe('review', () => {
     const file = join(round, 'run-1/score/checks.json');
     writeFileSync(file, JSON.stringify({ ...checks(true), audit: { ...gate('audit', false), log: 'logs/audit.log' } }));
     const review = renderReview(round);
-    expect(review).toContain('| run-1 | 0 | PASS | PASS | PASS | 2/2 | PASS | PASS | PASS | PASS | SHIP |');
+    expect(review).toContain('| run-1 | 0 | n/a | PASS | PASS | PASS | 2/2 | PASS | PASS | PASS | PASS | SHIP |');
     expect(review).toContain('advisory: npm audit reported issues: run-1/score/logs/audit.log');
   });
 
@@ -88,9 +88,35 @@ describe('review', () => {
     writeFileSync(join(round, 'run-1/score/scorecard.md'), '# Scorecard\n\nno recommendation here\n');
     writeFileSync(join(round, 'diff.json'), JSON.stringify(diff));
     const review = renderReview(round);
-    expect(review).toContain('| run-2 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | FAIL | missing |');
+    expect(review).toContain('| run-2 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | FAIL | missing |');
     expect(review).toContain('checks.json unreadable');
-    expect(review).toContain('| run-1 | 0 | PASS | PASS | PASS | 2/2 | PASS | PASS | FAIL | PASS | unreadable |');
+    expect(review).toContain('| run-1 | 0 | n/a | PASS | PASS | PASS | 2/2 | PASS | PASS | FAIL | PASS | unreadable |');
+  });
+
+  it('shows the instructions fact, the uncommitted count, the acceptance note and a container start command', () => {
+    const round = makeRound();
+    writeFileSync(join(round, 'diff.json'), JSON.stringify(diffRound(round, golden)));
+    writeFileSync(join(round, 'run-1/score/checks.json'), JSON.stringify({ ...checks(true), instructions: { ok: true }, uncommitted: 3 }));
+    writeFileSync(
+      join(round, 'run-2/score/checks.json'),
+      JSON.stringify({
+        ...checks(false),
+        instructions: { ok: false, problem: 'instructions.md differs from the canonical Shelfwright instructions' },
+        oracle: { ...gate('acceptance', false), log: '', note: 'backend/dist/server.js missing' },
+        uncommitted: 0,
+      }),
+    );
+    const review = renderReview(round);
+    expect(review).toContain('| Run | Builder exit | Instructions | Contract |');
+    expect(review).toContain('| run-1 | 0 | PASS | PASS | PASS | PASS | 2/2 | PASS | PASS | PASS | PASS | SHIP |');
+    expect(review).toContain('| run-2 | 0 | FAIL | FAIL | PASS | FAIL | 1/2 | FAIL | FAIL | PASS | FAIL | missing |');
+    expect(review).toContain('- instructions.md differs from the canonical Shelfwright instructions');
+    expect(review).toContain('- acceptance failed: backend/dist/server.js missing');
+    expect(review).toContain('- Commits: 30 · Uncommitted changes: 3 · BUILD_REPORT.md present: yes');
+    expect(review).toContain(
+      '- [ ] The app works: I can register a book, see field errors, and filter the list. Start it in a container (no credentials): `docker run --rm -it -p 3000:3000 -p 5173:5173 -v "$PWD/run-1/repo:/work" -w /work shelfwright-builder sh -c \'npm run dev -w backend & npm run dev -w frontend -- --host 0.0.0.0\'` from the round directory, then open http://localhost:5173.',
+    );
+    expect(review).not.toContain('npm run dev -w backend` +');
   });
 
   it('never overwrites a review the examiner may have filled in', () => {

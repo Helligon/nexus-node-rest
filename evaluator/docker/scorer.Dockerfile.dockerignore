@@ -1,5 +1,6 @@
 *
 !evaluator/
 !shelfwright/contract/
+!instructions.md
 evaluator/node_modules
 evaluator/rounds

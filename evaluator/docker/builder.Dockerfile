@@ -4,5 +4,6 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends git ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 RUN npm install -g @anthropic-ai/claude-code@2.1.286
+RUN git config --system --add safe.directory /work
 USER node
 WORKDIR /work

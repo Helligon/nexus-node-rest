@@ -10,5 +10,6 @@ COPY evaluator/package.json evaluator/package-lock.json ./
 RUN npm ci --ignore-scripts
 COPY evaluator/ ./
 COPY shelfwright/contract/openapi.yaml /eval/shelfwright/contract/openapi.yaml
+COPY instructions.md /eval/instructions.md
 RUN chown -R node:node /eval
 USER node

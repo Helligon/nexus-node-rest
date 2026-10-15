@@ -24,15 +24,21 @@ if [[ ! -f "$SCORE/checks.json" ]]; then
 fi
 mkdir -p "$SCORE/logs"
 
+# The scorer works from /tmp with user settings only, so nothing in the build (CLAUDE.md, .claude/) is loaded.
+MOUNTS=(
+  -v "$RUN_DIR/repo:/work:ro"
+  -v "$SCORE:/out"
+  -v "$SCORE/checks.json:/out/checks.json:ro"
+  -v "$SCORE/logs:/out/logs:ro"
+)
+if [[ -f "$SCORE/probe.json" ]]; then MOUNTS+=(-v "$SCORE/probe.json:/out/probe.json:ro"); fi
+
 docker run --rm \
   -e ANTHROPIC_API_KEY -e CLAUDE_CODE_OAUTH_TOKEN \
-  -v "$RUN_DIR/repo:/work:ro" \
-  -v "$SCORE:/out" \
-  -v "$SCORE/checks.json:/out/checks.json:ro" \
-  -v "$SCORE/logs:/out/logs:ro" \
-  -w /work \
+  "${MOUNTS[@]}" \
+  -w /tmp \
   evaluator-scorer \
   timeout 1800 claude -p "$(cat "$(dirname "$0")/scorer/scorer-prompt.md")" \
-    --model "$SCORER_MODEL" --dangerously-skip-permissions --output-format stream-json --verbose \
+    --model "$SCORER_MODEL" --setting-sources user --dangerously-skip-permissions --output-format stream-json --verbose \
   > "$SCORE/scorer-transcript.jsonl" 2> "$SCORE/scorer-stderr.log" \
   || echo "scorer agent exited non-zero; see $SCORE/scorer-stderr.log" >&2

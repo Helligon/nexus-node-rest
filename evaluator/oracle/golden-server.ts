@@ -1,5 +1,8 @@
 // Independent, dependency-free implementation of the contract and the instructions' decisions log.
 // It proves the acceptance suite and produces the behaviour baseline. Never shipped to a build.
+// Instructed behaviours it deliberately does not model (extend it before adding probe steps for them):
+// - a JSON body with charset=latin1 → 415;
+// - CORS preflight OPTIONS → 204.
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { pathToFileURL } from 'node:url';

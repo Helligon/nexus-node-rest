@@ -1,3 +1,7 @@
 node_modules/
 .DS_Store
 evaluator/rounds/*/run-*/repo/
+evaluator/rounds/*/run-*/transcript.jsonl
+evaluator/rounds/*/run-*/*-stderr.log
+evaluator/rounds/*/run-*/score/scorer-transcript.jsonl
+evaluator/rounds/*/run-*/score/scorer-stderr.log

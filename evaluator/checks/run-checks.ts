@@ -6,7 +6,9 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkContract } from './contract-check.js';
 import { checkCoverage } from './coverage-check.js';
+import { countUncommitted } from './git-status.js';
 import { runGate, type GateResult } from './gates.js';
+import { checkInstructions } from './instructions-check.js';
 import { checkLogs, type LogCheckResult } from './log-check.js';
 import { checkManifests, type ManifestResult } from './manifest-check.js';
 import { PROBE_STEPS, runProbe } from './probe.js';
@@ -15,17 +17,19 @@ import { scanSources } from './source-scan.js';
 
 export interface Checks {
   generatedAt: string;
+  instructions: { ok: boolean; problem?: string };
   contract: { ok: boolean; problem?: string };
   manifests: ManifestResult;
   sourceScan: { ok: boolean; findings: string[] };
   gates: GateResult[];
   coverage: { ok: boolean; totals: Record<string, number> | null; problems: string[] };
   audit: GateResult;
-  oracle: GateResult;
+  oracle: GateResult & { note?: string };
   logs: { acceptance: LogCheckResult | null; probe: LogCheckResult | null } | null;
   probe: boolean;
   buildReport: boolean;
   commits: number;
+  uncommitted: number;
   problems: string[];
 }
 
@@ -57,11 +61,12 @@ async function main(): Promise<void> {
   const evaluatorDir = fileURLToPath(new URL('..', import.meta.url));
   const problems: string[] = [];
 
-  const instructionsPath = join(workDir, 'instructions.md');
-  let manifests: ManifestResult = { ok: false, problems: ['instructions.md missing from the run'] };
-  if (existsSync(instructionsPath)) {
+  // Manifests are always derived from the canonical instructions, never from the run's copy.
+  const canonicalInstructions = join(evaluatorDir, '../instructions.md');
+  let manifests: ManifestResult = { ok: false, problems: [`canonical instructions.md missing at ${canonicalInstructions}`] };
+  if (existsSync(canonicalInstructions)) {
     try {
-      manifests = checkManifests(workDir, readFileSync(instructionsPath, 'utf8'));
+      manifests = checkManifests(workDir, readFileSync(canonicalInstructions, 'utf8'));
     } catch (err) {
       manifests = { ok: false, problems: [err instanceof Error ? err.message : String(err)] };
     }
@@ -74,7 +79,7 @@ async function main(): Promise<void> {
   const audit = await runGate('audit', 'npm audit --audit-level=high', workDir, logDir);
 
   const oracleCommand = 'npx vitest run --config oracle/acceptance/vitest.config.ts';
-  let oracle: GateResult = { name: 'acceptance', command: oracleCommand, ok: false, exitCode: null, durationMs: 0, log: 'backend/dist/server.js missing' };
+  let oracle: Checks['oracle'] = { name: 'acceptance', command: oracleCommand, ok: false, exitCode: null, durationMs: 0, log: '', note: 'backend/dist/server.js missing' };
   let logs: Checks['logs'] = null;
   let probe = false;
 
@@ -106,7 +111,9 @@ async function main(): Promise<void> {
       // +1 for the readiness /ping made by startServer
       logs.probe = checkLogs(probeOutput, { expectedResponses: PROBE_STEPS.length + 1 });
     } catch (err) {
-      problems.push(`server: ${err instanceof Error ? err.message : String(err)}`);
+      const message = err instanceof Error ? err.message : String(err);
+      problems.push(`server: ${message}`);
+      if (oracle.note) oracle.note = `server did not start: ${message}`;
     }
   }
 
@@ -120,6 +127,7 @@ async function main(): Promise<void> {
 
   const checks: Checks = {
     generatedAt: new Date().toISOString(),
+    instructions: guard(() => checkInstructions(workDir, canonicalInstructions), (message) => ({ ok: false, problem: `instructions check crashed: ${message}` })),
     contract: guard(() => checkContract(workDir, join(evaluatorDir, '../shelfwright/contract/openapi.yaml')), (message) => ({ ok: false, problem: `contract check crashed: ${message}` })),
     manifests,
     sourceScan: guard(() => scanSources(workDir), (message) => ({ ok: false, findings: [`source scan crashed: ${message}`] })),
@@ -131,6 +139,7 @@ async function main(): Promise<void> {
     probe,
     buildReport: existsSync(join(workDir, 'BUILD_REPORT.md')),
     commits: countCommits(workDir),
+    uncommitted: countUncommitted(workDir),
     problems,
   };
   writeFileSync(join(outDir, 'checks.json'), `${JSON.stringify(checks, null, 2)}\n`);

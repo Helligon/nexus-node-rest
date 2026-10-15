@@ -20,8 +20,8 @@ function readChecks(file: string): { checks: Checks | null; error?: string } {
 
 const mark = (ok: boolean | undefined): string => (ok === undefined ? 'n/a' : ok ? 'PASS' : 'FAIL');
 
-const CHECKLIST = [
-  '- [ ] The app works: I can register a book, see field errors, and filter the list (`npm run dev -w backend` + `npm run dev -w frontend` in the run repo, open http://localhost:5173).',
+const checklist = (run: string): string[] => [
+  `- [ ] The app works: I can register a book, see field errors, and filter the list. Start it in a container (no credentials): \`docker run --rm -it -p 3000:3000 -p 5173:5173 -v "$PWD/${run}/repo:/work" -w /work shelfwright-builder sh -c 'npm run dev -w backend & npm run dev -w frontend -- --host 0.0.0.0'\` from the round directory, then open http://localhost:5173.`,
   '- [ ] No code I would refuse to ship: security smells, dead code, hacks, misleading names.',
   "- [ ] Tests are honest and were written first; the agent's contract tests really check the contract.",
   '- [ ] Logging follows §4.3: only `http_response` and `error`, nothing sensitive.',
@@ -43,8 +43,8 @@ export function renderReview(roundDir: string): string {
     '',
     'Automated results are facts. The scorer agent gives advice. **Your verdict is final.**',
     '',
-    '| Run | Builder exit | Contract | Manifests | Source scan | Gates | Coverage | Acceptance | Logs | Behaviour | Scorer agent |',
-    '|---|---|---|---|---|---|---|---|---|---|---|',
+    '| Run | Builder exit | Instructions | Contract | Manifests | Source scan | Gates | Coverage | Acceptance | Logs | Behaviour | Scorer agent |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|',
   ];
   const sections: string[] = [];
   for (const run of listRuns(roundDir)) {
@@ -57,36 +57,37 @@ export function renderReview(roundDir: string): string {
       : 'missing';
     const behaviour = diff?.runs.find((entry) => entry.run === run);
     if (!checks) {
-      lines.push(`| ${run} | ${exit} | n/a | n/a | n/a | n/a | n/a | n/a | n/a | ${mark(behaviour?.ok)} | ${recommendation} |`);
+      lines.push(`| ${run} | ${exit} | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | ${mark(behaviour?.ok)} | ${recommendation} |`);
     } else {
       const passed = checks.gates.filter((gate) => gate.ok).length;
       const logsOk = Boolean(checks.logs?.acceptance?.ok && checks.logs?.probe?.ok);
       lines.push(
-        `| ${run} | ${exit} | ${mark(checks.contract.ok)} | ${mark(checks.manifests.ok)} | ${mark(checks.sourceScan.ok)} | ${passed}/${checks.gates.length} | ${mark(checks.coverage.ok)} | ${mark(checks.oracle.ok)} | ${mark(logsOk)} | ${mark(behaviour?.ok)} | ${recommendation} |`,
+        `| ${run} | ${exit} | ${mark(checks.instructions?.ok)} | ${mark(checks.contract.ok)} | ${mark(checks.manifests.ok)} | ${mark(checks.sourceScan.ok)} | ${passed}/${checks.gates.length} | ${mark(checks.coverage.ok)} | ${mark(checks.oracle.ok)} | ${mark(logsOk)} | ${mark(behaviour?.ok)} | ${recommendation} |`,
       );
     }
     sections.push(`## ${run}`, '');
     sections.push(`- Repo: [${run}/repo](${run}/repo) · Builder transcript: [${run}/transcript.jsonl](${run}/transcript.jsonl) · Build report: [${run}/repo/BUILD_REPORT.md](${run}/repo/BUILD_REPORT.md) · Scorecard: [${run}/score/scorecard.md](${run}/score/scorecard.md)`);
     if (checks) {
       const findings = [
+        ...(checks.instructions?.problem ? [checks.instructions.problem] : []),
         ...(checks.contract.problem ? [checks.contract.problem] : []),
         ...checks.manifests.problems,
         ...checks.sourceScan.findings,
         ...checks.gates.filter((gate) => !gate.ok).map((gate) => `gate ${gate.name} failed: ${run}/score/${gate.log}`),
         ...checks.coverage.problems,
-        ...(checks.oracle.ok ? [] : [`acceptance failed: ${run}/score/${checks.oracle.log}`]),
+        ...(checks.oracle.ok ? [] : [`acceptance failed: ${checks.oracle.note ?? `${run}/score/${checks.oracle.log}`}`]),
         ...(checks.logs?.acceptance?.problems ?? []),
         ...(checks.logs?.probe?.problems ?? []),
         ...checks.problems,
         ...(checks.audit && !checks.audit.ok ? [`advisory: npm audit reported issues: ${run}/score/${checks.audit.log}`] : []),
       ];
       for (const finding of findings) sections.push(`- ${finding}`);
-      sections.push(`- Commits: ${checks.commits} · BUILD_REPORT.md present: ${checks.buildReport ? 'yes' : 'no'}`);
+      sections.push(`- Commits: ${checks.commits} · Uncommitted changes: ${checks.uncommitted ?? 'n/a'} · BUILD_REPORT.md present: ${checks.buildReport ? 'yes' : 'no'}`);
     } else {
       sections.push(checksError ? `- checks.json unreadable: ${checksError}` : '- No checks.json: the checks did not run or crashed.');
     }
     if (behaviour && !behaviour.ok) sections.push(`- Behaviour differs from golden in ${behaviour.differences.length} place(s)${behaviour.note ? ` (${behaviour.note})` : ''}; see diff.md`);
-    sections.push('', '### Examiner checklist', '', ...CHECKLIST, '', '**Verdict (PASS / FAIL):**', '', '**Notes:**', '', '');
+    sections.push('', '### Examiner checklist', '', ...checklist(run), '', '**Verdict (PASS / FAIL):**', '', '**Notes:**', '', '');
   }
   lines.push(
     '',
