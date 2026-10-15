@@ -1,0 +1,538 @@
+[
+  {
+    "name": "ping",
+    "method": "GET",
+    "path": "/ping",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "status": "ok"
+    }
+  },
+  {
+    "name": "create-a",
+    "method": "POST",
+    "path": "/assets",
+    "status": 201,
+    "contentType": "application/json; charset=utf-8",
+    "location": "/assets/28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+    "allow": null,
+    "body": {
+      "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+      "title": "Probe Book A",
+      "author": "Probe Author",
+      "isbn": "9780306406157",
+      "status": "available",
+      "createdAt": "2026-10-15T17:37:59.814Z"
+    }
+  },
+  {
+    "name": "create-b",
+    "method": "POST",
+    "path": "/assets",
+    "status": 201,
+    "contentType": "application/json; charset=utf-8",
+    "location": "/assets/e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+    "allow": null,
+    "body": {
+      "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+      "title": "Probe Book B",
+      "author": "probe author",
+      "isbn": "0306406152",
+      "status": "on_loan",
+      "createdAt": "2026-10-15T17:37:59.815Z"
+    }
+  },
+  {
+    "name": "create-c",
+    "method": "POST",
+    "path": "/assets",
+    "status": 201,
+    "contentType": "application/json; charset=utf-8",
+    "location": "/assets/2526f34f-7420-49a6-aed2-7c3e762a6ef3",
+    "allow": null,
+    "body": {
+      "id": "2526f34f-7420-49a6-aed2-7c3e762a6ef3",
+      "title": "Another Title",
+      "author": "Someone Else",
+      "isbn": null,
+      "status": "lost",
+      "createdAt": "2026-10-15T17:37:59.815Z"
+    }
+  },
+  {
+    "name": "duplicate-isbn",
+    "method": "POST",
+    "path": "/assets",
+    "status": 409,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "CONFLICT",
+        "message": "An asset with this ISBN already exists"
+      }
+    }
+  },
+  {
+    "name": "missing-fields",
+    "method": "POST",
+    "path": "/assets",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Request body is invalid",
+        "details": [
+          {
+            "field": "title",
+            "issue": "is required and must be a string"
+          },
+          {
+            "field": "author",
+            "issue": "is required and must be a string"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "bad-isbn",
+    "method": "POST",
+    "path": "/assets",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Request body is invalid",
+        "details": [
+          {
+            "field": "isbn",
+            "issue": "must be a valid ISBN-10 or ISBN-13"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "bad-status",
+    "method": "POST",
+    "path": "/assets",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Request body is invalid",
+        "details": [
+          {
+            "field": "status",
+            "issue": "must be one of available, on_loan, lost"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "unknown-field",
+    "method": "POST",
+    "path": "/assets",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Request body is invalid",
+        "details": [
+          {
+            "field": "colour",
+            "issue": "is not allowed"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "malformed-json",
+    "method": "POST",
+    "path": "/assets",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Request body is not valid JSON",
+        "details": [
+          {
+            "field": "body",
+            "issue": "must be valid JSON"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "wrong-content-type",
+    "method": "POST",
+    "path": "/assets",
+    "status": 415,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "UNSUPPORTED_MEDIA_TYPE",
+        "message": "Content-Type must be application/json"
+      }
+    }
+  },
+  {
+    "name": "too-large",
+    "method": "POST",
+    "path": "/assets",
+    "status": 413,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "PAYLOAD_TOO_LARGE",
+        "message": "Request body must be 10 kb or smaller"
+      }
+    }
+  },
+  {
+    "name": "list-all",
+    "method": "GET",
+    "path": "/assets",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "data": [
+        {
+          "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+          "title": "Probe Book A",
+          "author": "Probe Author",
+          "isbn": "9780306406157",
+          "status": "available",
+          "createdAt": "2026-10-15T17:37:59.814Z"
+        },
+        {
+          "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+          "title": "Probe Book B",
+          "author": "probe author",
+          "isbn": "0306406152",
+          "status": "on_loan",
+          "createdAt": "2026-10-15T17:37:59.815Z"
+        },
+        {
+          "id": "2526f34f-7420-49a6-aed2-7c3e762a6ef3",
+          "title": "Another Title",
+          "author": "Someone Else",
+          "isbn": null,
+          "status": "lost",
+          "createdAt": "2026-10-15T17:37:59.815Z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "list-author",
+    "method": "GET",
+    "path": "/assets?author=PROBE%20AUTHOR",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "data": [
+        {
+          "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+          "title": "Probe Book A",
+          "author": "Probe Author",
+          "isbn": "9780306406157",
+          "status": "available",
+          "createdAt": "2026-10-15T17:37:59.814Z"
+        },
+        {
+          "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+          "title": "Probe Book B",
+          "author": "probe author",
+          "isbn": "0306406152",
+          "status": "on_loan",
+          "createdAt": "2026-10-15T17:37:59.815Z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "list-status",
+    "method": "GET",
+    "path": "/assets?status=on_loan",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "data": [
+        {
+          "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+          "title": "Probe Book B",
+          "author": "probe author",
+          "isbn": "0306406152",
+          "status": "on_loan",
+          "createdAt": "2026-10-15T17:37:59.815Z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "list-q",
+    "method": "GET",
+    "path": "/assets?q=book",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "data": [
+        {
+          "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+          "title": "Probe Book A",
+          "author": "Probe Author",
+          "isbn": "9780306406157",
+          "status": "available",
+          "createdAt": "2026-10-15T17:37:59.814Z"
+        },
+        {
+          "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+          "title": "Probe Book B",
+          "author": "probe author",
+          "isbn": "0306406152",
+          "status": "on_loan",
+          "createdAt": "2026-10-15T17:37:59.815Z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "list-combined",
+    "method": "GET",
+    "path": "/assets?author=probe%20author&status=available",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "data": [
+        {
+          "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+          "title": "Probe Book A",
+          "author": "Probe Author",
+          "isbn": "9780306406157",
+          "status": "available",
+          "createdAt": "2026-10-15T17:37:59.814Z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "list-none",
+    "method": "GET",
+    "path": "/assets?q=zzzz",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "data": []
+    }
+  },
+  {
+    "name": "list-bad-status",
+    "method": "GET",
+    "path": "/assets?status=borrowed",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Query is invalid",
+        "details": [
+          {
+            "field": "status",
+            "issue": "must be one of available, on_loan, lost"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "list-unknown-param",
+    "method": "GET",
+    "path": "/assets?colour=red",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Query is invalid",
+        "details": [
+          {
+            "field": "colour",
+            "issue": "is not a supported filter"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "list-repeated",
+    "method": "GET",
+    "path": "/assets?author=a&author=b",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Query is invalid",
+        "details": [
+          {
+            "field": "author",
+            "issue": "must be given once"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "get-a",
+    "method": "GET",
+    "path": "/assets/{create-a}",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+      "title": "Probe Book A",
+      "author": "Probe Author",
+      "isbn": "9780306406157",
+      "status": "available",
+      "createdAt": "2026-10-15T17:37:59.814Z"
+    }
+  },
+  {
+    "name": "get-missing",
+    "method": "GET",
+    "path": "/assets/00000000-0000-4000-8000-000000000000",
+    "status": 404,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Asset not found"
+      }
+    }
+  },
+  {
+    "name": "get-malformed",
+    "method": "GET",
+    "path": "/assets/not-a-uuid",
+    "status": 404,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Asset not found"
+      }
+    }
+  },
+  {
+    "name": "delete-assets",
+    "method": "DELETE",
+    "path": "/assets",
+    "status": 405,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": "GET, POST",
+    "body": {
+      "error": {
+        "code": "METHOD_NOT_ALLOWED",
+        "message": "Method not allowed"
+      }
+    }
+  },
+  {
+    "name": "put-asset",
+    "method": "PUT",
+    "path": "/assets/{create-a}",
+    "status": 405,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": "GET",
+    "body": {
+      "error": {
+        "code": "METHOD_NOT_ALLOWED",
+        "message": "Method not allowed"
+      }
+    }
+  },
+  {
+    "name": "post-ping",
+    "method": "POST",
+    "path": "/ping",
+    "status": 405,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": "GET",
+    "body": {
+      "error": {
+        "code": "METHOD_NOT_ALLOWED",
+        "message": "Method not allowed"
+      }
+    }
+  },
+  {
+    "name": "unknown-route",
+    "method": "GET",
+    "path": "/no-such-route",
+    "status": 404,
+    "contentType": "application/json; charset=utf-8",
+    "location": null,
+    "allow": null,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Route not found"
+      }
+    }
+  }
+]
