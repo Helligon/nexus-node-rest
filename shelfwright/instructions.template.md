@@ -236,12 +236,12 @@ Do not create files outside this layout, except extra test files under `backend/
 | Workspace | Section | Package | Version |
 |---|---|---|---|
 | root | devDependencies | `@apidevtools/swagger-parser` | `12.1.0` |
-| root | devDependencies | `@eslint/js` | `9.39.5` |
+| root | devDependencies | `@eslint/js` | `10.0.1` |
 | root | devDependencies | `@types/node` | `24.19.0` |
 | root | devDependencies | `@vitest/coverage-v8` | `4.1.11` |
 | root | devDependencies | `ajv` | `8.20.0` |
 | root | devDependencies | `ajv-formats` | `3.0.1` |
-| root | devDependencies | `eslint` | `9.39.5` |
+| root | devDependencies | `eslint` | `10.11.0` |
 | root | devDependencies | `globals` | `16.5.0` |
 | root | devDependencies | `tsx` | `4.23.15` |
 | root | devDependencies | `typescript` | `5.9.3` |
@@ -260,7 +260,7 @@ Do not create files outside this layout, except extra test files under `backend/
 | frontend | dependencies | `react` | `19.3.0` |
 | frontend | dependencies | `react-dom` | `19.3.0` |
 | frontend | devDependencies | `@testing-library/dom` | `10.4.2` |
-| frontend | devDependencies | `@testing-library/jest-dom` | `6.10.0` |
+| frontend | devDependencies | `@testing-library/jest-dom` | `6.9.1` |
 | frontend | devDependencies | `@testing-library/react` | `16.3.3` |
 | frontend | devDependencies | `@testing-library/user-event` | `14.6.7` |
 | frontend | devDependencies | `@types/react` | `19.3.0` |

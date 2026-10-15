@@ -22,9 +22,9 @@
 
 - Node 24.x. Every `npm install` / `npm ci` uses `--ignore-scripts`.
 - Exact dependency versions only, each published before 2026-10-01. The app's pinned set (the dependency table in `instructions.md`):
-  - root devDependencies: `@apidevtools/swagger-parser@12.1.0`, `@eslint/js@9.39.5`, `@types/node@24.19.0`, `@vitest/coverage-v8@4.1.11`, `ajv@8.20.0`, `ajv-formats@3.0.1`, `eslint@9.39.5`, `globals@16.5.0`, `tsx@4.23.15`, `typescript@5.9.3`, `typescript-eslint@8.71.0`, `vitest@4.1.11`, `yaml@2.9.1`
+  - root devDependencies: `@apidevtools/swagger-parser@12.1.0`, `@eslint/js@10.0.1`, `@types/node@24.19.0`, `@vitest/coverage-v8@4.1.11`, `ajv@8.20.0`, `ajv-formats@3.0.1`, `eslint@10.11.0`, `globals@16.5.0`, `tsx@4.23.15`, `typescript@5.9.3`, `typescript-eslint@8.71.0`, `vitest@4.1.11`, `yaml@2.9.1`
   - backend dependencies: `cors@2.8.6`, `express@5.2.1`, `helmet@8.3.0`, `zod@4.6.5`; devDependencies: `@types/cors@2.8.19`, `@types/express@5.0.6`, `@types/supertest@7.2.1`, `supertest@7.3.0`
-  - frontend dependencies: `axios@1.20.0`, `react@19.3.0`, `react-dom@19.3.0`; devDependencies: `@testing-library/dom@10.4.2`, `@testing-library/jest-dom@6.10.0`, `@testing-library/react@16.3.3`, `@testing-library/user-event@14.6.7`, `@types/react@19.3.0`, `@types/react-dom@19.3.0`, `@vitejs/plugin-react@5.2.0`, `jsdom@27.4.0`, `msw@2.15.0`, `vite@7.3.6`
+  - frontend dependencies: `axios@1.20.0`, `react@19.3.0`, `react-dom@19.3.0`; devDependencies: `@testing-library/dom@10.4.2`, `@testing-library/jest-dom@6.9.1`, `@testing-library/react@16.3.3`, `@testing-library/user-event@14.6.7`, `@types/react@19.3.0`, `@types/react-dom@19.3.0`, `@vitejs/plugin-react@5.2.0`, `jsdom@27.4.0`, `msw@2.15.0`, `vite@7.3.6`
   - eval images: `node:24-bookworm-slim`, `@anthropic-ai/claude-code@2.1.286`
 - `instructions.md` must not contain evaluation vocabulary (evaluator, scorer, judge, oracle, golden, harness, examiner, grader…). A test enforces this.
 - `instructions.md` must not assume any particular agent tool.
