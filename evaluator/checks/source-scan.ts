@@ -8,8 +8,8 @@ const SOURCE = /\.(ts|tsx|js|mjs|cjs)$/;
 const LOGGERS = new Set(['backend/src/logger.ts', 'frontend/src/logger.ts']);
 const FORBIDDEN: Array<[RegExp, string]> = [
   [/eslint-disable/, 'eslint-disable comment'],
-  [/@ts-ignore|@ts-expect-error/, 'TypeScript suppression'],
-  [/\b(?:it|test|describe)\.(?:skip|only|todo)\b/, 'skipped or focused test'],
+  [/@ts-(?:ignore|expect-error|nocheck)/, 'TypeScript suppression'],
+  [/\b(?:it|test|describe|suite)(?:\.\w+)*\.(?:skip|skipIf|runIf|only|todo|fails)\b/, 'skipped or focused test'],
   [/\b(?:istanbul|v8|c8) ignore\b/, 'coverage ignore comment'],
 ];
 

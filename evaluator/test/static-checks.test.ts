@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -50,6 +50,25 @@ describe('scanSources', () => {
       'frontend/src/x.ts:1: TypeScript suppression',
     ]);
   });
+
+  it('catches ts-nocheck and the extended skip, focus and fail forms', () => {
+    const dir = tree({
+      'backend/src/a.ts': '// @ts-nocheck\n',
+      'backend/test/b.test.ts': [
+        "it.skipIf(true)('x', () => {});",
+        "test.concurrent.skip('x', () => {});",
+        "describe.runIf(false)('x', () => {});",
+        "it.fails('x', () => {});",
+      ].join('\n') + '\n',
+    });
+    expect(scanSources(dir).findings).toEqual([
+      'backend/src/a.ts:1: TypeScript suppression',
+      'backend/test/b.test.ts:1: skipped or focused test',
+      'backend/test/b.test.ts:2: skipped or focused test',
+      'backend/test/b.test.ts:3: skipped or focused test',
+      'backend/test/b.test.ts:4: skipped or focused test',
+    ]);
+  });
 });
 
 describe('checkCoverage', () => {
@@ -80,5 +99,17 @@ describe('checkCoverage', () => {
 
   it('fails when there is no report', () => {
     expect(checkCoverage(tree({})).problems).toEqual(['backend/coverage/coverage-summary.json not found']);
+  });
+
+  it('compares real paths, so a symlinked work directory still passes', () => {
+    const dir = tree({ 'backend/src/app.ts': 'x', 'backend/src/server.ts': 'x' });
+    const real = realpathSync(dir);
+    const metric = { pct: 100 };
+    const summary = { total: { lines: metric, branches: metric, functions: metric, statements: metric }, [join(real, 'backend/src/app.ts')]: { lines: metric } };
+    mkdirSync(join(dir, 'backend/coverage'), { recursive: true });
+    writeFileSync(join(dir, 'backend/coverage/coverage-summary.json'), JSON.stringify(summary));
+    const link = join(mkdtempSync(join(tmpdir(), 'sw-link-')), 'work');
+    symlinkSync(dir, link);
+    expect(checkCoverage(link)).toMatchObject({ ok: true, problems: [] });
   });
 });

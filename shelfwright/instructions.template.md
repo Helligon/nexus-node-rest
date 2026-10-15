@@ -22,7 +22,7 @@ These override any habit or default you have.
 2. **Three strikes.** If the same gate fails three times in a row after genuine fixes, stop. Fill in `BUILD_REPORT.md` (Appendix B) with the failing command, its output and what you tried, then finish. Never fake a pass.
 3. **Never weaken a check.**
    - Do not edit `contract/openapi.yaml` or lower the coverage thresholds.
-   - Do not add `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `.skip`, `.only`, `.todo`, or `istanbul`/`v8`/`c8 ignore` comments.
+   - Do not add `eslint-disable`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck` comments; do not skip, focus or invert tests in any form (`.skip`, `.skipIf`, `.runIf`, `.only`, `.todo`, `.fails`, including chained forms such as `it.concurrent.skip`); and do not add `istanbul`/`v8`/`c8 ignore` comments.
    - Do not delete or loosen a test to make it pass. Do not exclude files from coverage beyond what §6 allows.
 4. **Dependencies are exact.** Use only the packages in the dependency table (§6.3), at exactly those versions, with no `^` or `~`. Do not add, remove or upgrade anything. Always pass `--ignore-scripts` to `npm install` and `npm ci`. Never run `npm audit fix`. Exact, known-safe versions avoid pulling a newly published compromised release.
 5. **No outside code.** Download nothing except npm packages, through npm. Never pipe anything from the network into a shell.

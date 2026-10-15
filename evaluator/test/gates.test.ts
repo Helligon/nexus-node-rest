@@ -23,7 +23,12 @@ describe('runGate', () => {
     expect(readFileSync(join(dir, 'env.log'), 'utf8')).toContain('yes');
   });
 
-  it('kills a command that exceeds its timeout', async () => {
+  it('kills a command that exceeds its timeout and logs the effective timeout', async () => {
     expect((await runGate('slow', 'sleep 5', dir, dir, { timeoutMs: 200 })).ok).toBe(false);
+    expect(readFileSync(join(dir, 'slow.log'), 'utf8')).toContain('[killed after 200 ms]');
   });
+
+  it('resolves ok:false instead of hanging when the working directory does not exist', async () => {
+    expect(await runGate('nocwd', 'echo hi', join(dir, 'no-such-dir'), dir)).toMatchObject({ ok: false, exitCode: null });
+  }, 5000);
 });

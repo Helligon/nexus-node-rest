@@ -1,12 +1,22 @@
-import { spawn } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 
 export interface RunningServer {
   url: string;
   stop(): Promise<string>;
 }
 
+// Signals the whole process group; a group that has already exited (ESRCH) is not an error.
+function killGroup(child: ChildProcess, signal: NodeJS.Signals): void {
+  try {
+    if (child.pid !== undefined) process.kill(-child.pid, signal);
+    else child.kill(signal);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+  }
+}
+
 export async function startServer(options: { command: string; args: string[]; cwd: string; port: number }): Promise<RunningServer> {
-  const child = spawn(options.command, options.args, { cwd: options.cwd, env: { ...process.env, PORT: String(options.port) }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(options.command, options.args, { cwd: options.cwd, env: { ...process.env, PORT: String(options.port) }, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
   let stdout = '';
   let stderr = '';
   child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
@@ -17,14 +27,16 @@ export async function startServer(options: { command: string; args: string[]; cw
   const deadline = Date.now() + 20_000;
 
   for (;;) {
-    if (child.exitCode !== null) throw new Error(`Server exited early with code ${child.exitCode}:\n${output()}`);
+    if (child.exitCode !== null || child.signalCode !== null) {
+      throw new Error(`Server exited early with code ${child.exitCode ?? child.signalCode}:\n${output()}`);
+    }
     try {
-      if ((await fetch(`${url}/ping`)).ok) break;
+      if ((await fetch(`${url}/ping`, { signal: AbortSignal.timeout(1000) })).ok) break;
     } catch {
       // not listening yet
     }
     if (Date.now() > deadline) {
-      child.kill('SIGKILL');
+      killGroup(child, 'SIGKILL');
       throw new Error(`Server did not answer /ping within 20 s:\n${output()}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -33,9 +45,9 @@ export async function startServer(options: { command: string; args: string[]; cw
   return {
     url,
     async stop() {
-      child.kill('SIGTERM');
+      killGroup(child, 'SIGTERM');
       await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 5000))]);
-      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+      if (child.exitCode === null && child.signalCode === null) killGroup(child, 'SIGKILL');
       return output();
     },
   };

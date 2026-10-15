@@ -1,5 +1,5 @@
 // Reads the coverage report itself, so a loosened config cannot hide gaps (instructions.md §4.5, §6.1).
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { listFiles } from './files.js';
 
@@ -11,7 +11,12 @@ export function checkCoverage(workDir: string): { ok: boolean; totals: Record<st
   const summary = JSON.parse(readFileSync(file, 'utf8')) as Record<string, Record<string, { pct: number }>>;
   const totals = Object.fromEntries(METRICS.map((metric) => [metric, summary.total?.[metric]?.pct ?? 0]));
   const problems = METRICS.filter((metric) => (totals[metric] ?? 0) < 100).map((metric) => `${metric} coverage is ${totals[metric]}%`);
-  const reported = new Set(Object.keys(summary).filter((key) => key !== 'total').map((key) => relative(workDir, key).split(sep).join('/')));
+  const root = realpathSync(workDir);
+  const reported = new Set(
+    Object.keys(summary)
+      .filter((key) => key !== 'total')
+      .map((key) => relative(root, existsSync(key) ? realpathSync(key) : key).split(sep).join('/')),
+  );
   const sourceDir = join(workDir, 'backend/src');
   const expected = existsSync(sourceDir)
     ? listFiles(sourceDir).filter((path) => path.endsWith('.ts') && path !== 'server.ts').map((path) => `backend/src/${path}`)
