@@ -95,7 +95,7 @@ HTTP test and every frontend mock response is validated through the helper.
 |---|---|---|
 | 0 | Preflight (Node 24, git) | `node -e` version check |
 | 1 | Scaffold: contract, manifests, configs, install | contract hash + `contract:validate` + `tsc` + `eslint` |
-| 2 | Contract helper (TDD), then backend (TDD checklist) | `test:contract` + backend `test:coverage` + `smoke` + typecheck + lint |
+| 2 | Contract helper (TDD), then backend (TDD checklist) | `test:contract` + backend `test:coverage` + `smoke` + `test:conformance` + typecheck + lint |
 | 3 | Frontend | frontend `test` + `build` + `typecheck` + lint |
 | 4 | Verify and report | `npm run verify` |
 
@@ -139,7 +139,7 @@ unspecified decisions. This covers the brief's "write it down rather than guessi
   - the contract hash;
   - manifests (dependencies and scripts must match exactly);
   - a source scan for suppressions, focused or skipped tests, and console use outside the loggers;
-  - gates: install, typecheck, lint, contract validate, contract tests, backend coverage, frontend tests, frontend build and smoke (`npm audit` is recorded separately as an advisory result);
+  - gates: install, typecheck, lint, check-rules, contract validate, contract tests, backend coverage, conformance, frontend tests, frontend build and smoke (`npm audit` is recorded separately as an advisory result);
   - coverage: every total at 100%, and every `backend/src` file present in the report;
   - the hidden acceptance suite, run against the built server;
   - the 28-step behaviour probe;
@@ -167,7 +167,7 @@ Asset fields:
 - `id`: UUID v4.
 - `title`: trimmed, 1–200 characters.
 - `author`: trimmed, 1–100 characters.
-- `isbn`: optional. Spaces and hyphens are stripped and `x` becomes `X`. It must then pass the ISBN-10 or ISBN-13 checksum. It is stored normalised and must be unique (otherwise 409).
+- `isbn`: optional. U+0020 spaces and U+002D hyphens are removed and `x` becomes `X`. It must then pass the ISBN-10 or ISBN-13 checksum. It is stored normalised and must be unique (otherwise 409).
 - `status`: `available|on_loan|lost`, default `available`, set only at creation.
 - `createdAt`: ISO 8601 UTC.
 

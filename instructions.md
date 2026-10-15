@@ -52,11 +52,11 @@ Each of these mistakes is easy to make. The reference in parentheses points to w
 - Don't let the smoke script leave a server running (Phase 2, §2.4).
 - Don't guess where form errors go (Phase 3, §3.2).
 - Don't send filters that are empty after trimming (Phase 3, §3.1).
-- Don't route OPTIONS yourself; cors answers it.
+- Don't route OPTIONS yourself; cors answers it (§4.2).
 - Don't strip tabs, non-breaking spaces or other dashes from an ISBN. Remove only `/[ -]/g` (U+0020 space and U+002D hyphen-minus) (§4.1).
 - Don't report an empty key as `field: ""`. Use `body` or `query` (§4.7).
 - Don't show **Loading…** in place of the table on a reload, let a stale response overwrite a newer one, or abort requests (Phase 3, §3.2).
-- Don't rely only on in-process tests — run the conformance suite against `backend/dist/server.js`.
+- Don't rely only on in-process tests — run the conformance suite against `backend/dist/server.js` (Phase 2, §2.5).
 
 ## 3. Prerequisites
 
@@ -367,7 +367,7 @@ It checks:
 2. **Coverage.**
    - `backend/vitest.config.ts` contains, as whole lines after trimming leading and trailing spaces, `include: ['test/**/*.test.ts'],`, `include: ['src/**/*.ts'],` and `exclude: ['src/server.ts'],`, and no other line containing `include` or `exclude`.
    - `frontend/vite.config.ts` contains, as a whole line after trimming, `include: ['src/**/*.test.{ts,tsx}'],`, and no other line containing `include` or `exclude`.
-   - Only if `backend/coverage/coverage-summary.json` exists (it does not in Phase 1): it parses the file and requires `total.lines.pct`, `total.branches.pct`, `total.functions.pct` and `total.statements.pct` each `=== 100`, and an entry for every `backend/src/**/*.ts` file except `backend/src/server.ts`. The report's keys are absolute paths: a file has an entry when some key, passed through `fs.realpathSync` and then `path.relative` from the real path of the repository root, equals its path (with `/` separators).
+   - Only if `backend/coverage/coverage-summary.json` exists (it does not in Phase 1): it parses the file and requires `total.lines.pct`, `total.branches.pct`, `total.functions.pct` and `total.statements.pct` each `=== 100`, and an entry for every `backend/src/**/*.ts` file except `backend/src/server.ts`. The report's keys are absolute paths: a file has an entry when some key, passed through `fs.realpathSync` and then `path.relative` from the real path of the repository root, equals its path (with `/` separators). Summary keys whose file no longer exists are reported as a problem (`stale coverage report: run npm run test:coverage -w backend`), not passed to realpath. If `check:rules` reports coverage from an old run, re-run `npm run test:coverage -w backend`.
 3. **Suppressions.** It scans the `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files under `backend/src`, `backend/test`, `frontend/src`, `contract`, `conformance` and `scripts`. It skips folders that do not exist yet, any `node_modules`, `dist` or `coverage` folder, and `scripts/check-rules.mjs` itself. A problem is any line containing:
    - `eslint-disable`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`;
    - a test modifier `.skip`, `.skipIf`, `.runIf`, `.only`, `.todo` or `.fails` on `it`, `test`, `describe` or `suite`, including chained forms such as `it.concurrent.skip`;
@@ -547,7 +547,7 @@ Domain (`test/domain/`):
    - `title` and `author` that are missing, blank, too long or not strings;
    - an invalid or non-string `isbn`;
    - an invalid `status`;
-   - each unknown key (field = the key);
+   - each unknown key (field = the key; `body` for an empty key `""`);
    - a body that is `null`, an array or a string (field `body`);
    - `undefined`, which gives the same issues as `{}` (fields `title` and `author`);
    - a `title` of 100 `📚` is accepted and one of 101 is too long (§4.1).
@@ -555,7 +555,7 @@ Domain (`test/domain/`):
 5. `parseAssetFilter`:
    - `{}` → `{}`;
    - each valid filter is trimmed and returned;
-   - errors for: an unknown key, a repeated key (array value), a value blank after trimming, `author` > 100, `q` > 200, an invalid `status`, with the §4.7 issue texts and order.
+   - errors for: an unknown key, an empty key (`?=x`, field `query`), a repeated key (array value), a value blank after trimming, `author` > 100, `q` > 200, an invalid `status`, with the §4.7 issue texts and order.
 
 Repository (`test/repo/`):
 6. `add`, then `findById` / `findByIsbn`; a missing value gives `undefined`.
@@ -596,7 +596,7 @@ HTTP (`test/http/`, Supertest against `makeTestApp().app`):
 
 Write `scripts/smoke.ts`. It must:
 1. Start the server with `spawn(process.execPath, ['backend/dist/server.js'], …)` from `node:child_process`, with `PORT=3999` added to the environment and stdout and stderr inherited.
-2. Wait up to 20 seconds for `GET /ping` to return 200.
+2. Before spawning, fail if something already answers `/ping` on port 3999. Wait up to 20 seconds for `GET /ping` to return 200. If the child exits before `/ping` answers, or readiness times out, kill the child and fail.
 3. `POST /assets` with a valid book and expect 201.
 4. `GET` the returned `Location` path and expect 200 with the same body.
 5. `GET /assets?q=<that title>` and expect the book in `data`.
@@ -608,11 +608,11 @@ It exits 0 on success. On failure it throws (after the `finally` cleanup), which
 
 Write the conformance suite (§4.5) in `conformance/`. Run it with `npm run test:conformance`, which builds the backend first.
 - `conformance/vitest.config.ts` is as in §6.1.
-- `conformance/global-setup.ts` starts `node backend/dist/server.js` with `PORT=3997` added to the environment (spawned with `process.execPath`, as in §2.4), waits up to 20 seconds for `GET /ping` to return 200, and stops it on teardown: `SIGTERM`, wait for its `exit` event, and `SIGKILL` if it has not exited after 5 seconds.
+- `conformance/global-setup.ts` starts `node backend/dist/server.js` with `PORT=3997` added to the environment (spawned with `process.execPath`, as in §2.4), waits up to 20 seconds for `GET /ping` to return 200, and stops it on teardown: `SIGTERM`, wait for its `exit` event, and `SIGKILL` if it has not exited after 5 seconds. Before spawning, fail if something already answers `/ping` on port 3997. If the child exits before `/ping` answers, or readiness times out, kill the child and fail.
 - Tests use the base URL `http://127.0.0.1:3997` and call it with `fetch`. They never import code from `backend/`.
 - Tests validate bodies with `contract/contract-helper.ts` too, imported as `../contract/contract-helper.js` (`assertMatchesContract`, or `assertMatchesSchema('Error', body)` for 404 and 405 responses outside the contract).
 - Tests must not depend on data left by other tests: use unique titles and authors and generated valid ISBNs.
-- Cover every row of §4.2 and every rule in §4.7 that a request from outside can trigger: status, headers, exact `message` and `issue`, and detail order. Two behaviours cannot be triggered from outside the process (an unexpected failure → `500 INTERNAL_ERROR`, and a body that cannot be read → `could not be read`); checklist items 19 and 23 cover them in-process.
+- Cover every row of §4.2 and every rule in §4.7 that a request from outside can trigger: status, headers, exact `message` and `issue`, and detail order. Only the unexpected failure (`500 INTERNAL_ERROR`, checklist item 19) cannot be triggered over HTTP; checklist item 19 covers it in-process. The unreadable-body case can be triggered, for example with `Content-Type: application/json`, `Content-Encoding: gzip` and a corrupt payload, which gives 400 `could not be read`; the conformance suite includes it.
 
 Commit: `backend <n>: conformance suite` (continue the item numbering after 23).
 
