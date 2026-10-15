@@ -19,7 +19,13 @@ export function diffRound(roundDir: string, golden: ProbeRecord[]): RoundDiff {
   const runs = listRuns(roundDir).map((run) => {
     const file = join(roundDir, run, 'score/probe.json');
     if (!existsSync(file)) return { run, ok: false, differences: [], note: 'no probe (server did not build or start)' };
-    const differences = compareProbes(expected, normaliseRecords(JSON.parse(readFileSync(file, 'utf8')) as ProbeRecord[]));
+    let actual: ProbeRecord[];
+    try {
+      actual = JSON.parse(readFileSync(file, 'utf8')) as ProbeRecord[];
+    } catch (error) {
+      return { run, ok: false, differences: [], note: `probe.json unreadable: ${(error as Error).message}` };
+    }
+    const differences = compareProbes(expected, normaliseRecords(actual));
     return { run, ok: differences.length === 0, differences };
   });
   return { ok: runs.length > 0 && runs.every((run) => run.ok), runs };

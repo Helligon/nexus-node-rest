@@ -26,7 +26,7 @@ fi
 (cd "$ROOT/shelfwright" && npm run --silent check) || { echo "shelfwright check failed: instructions.md is stale (run npm run assemble) or shelfwright dependencies are not installed" >&2; exit 2; }
 
 ROUND_DIR="$EVAL/rounds/$ROUND"
-if [[ -e "$ROUND_DIR" ]]; then echo "$ROUND_DIR already exists; use a new round number" >&2; exit 2; fi
+if compgen -G "$ROUND_DIR/run-*" >/dev/null; then echo "$ROUND_DIR already has runs; use a new round number" >&2; exit 2; fi
 mkdir -p "$ROUND_DIR"
 shasum -a 256 "$ROOT/instructions.md" | cut -d' ' -f1 > "$ROUND_DIR/instructions.sha256"
 printf 'builder=%s\nscorer=%s\n' "$BUILDER_MODEL" "$SCORER_MODEL" > "$ROUND_DIR/models.txt"

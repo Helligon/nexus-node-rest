@@ -76,6 +76,23 @@ describe('review', () => {
     expect(review).toContain('advisory: npm audit reported issues: run-1/score/logs/audit.log');
   });
 
+  it('tolerates corrupt evidence and unusual scorer/log states', () => {
+    const round = makeRound();
+    writeFileSync(join(round, 'run-2/score/probe.json'), '{not json');
+    const diff = diffRound(round, golden);
+    expect(diff.runs[1]).toMatchObject({ run: 'run-2', ok: false });
+    expect(diff.runs[1]?.note).toMatch(/unreadable/);
+
+    writeFileSync(join(round, 'run-2/score/checks.json'), '{not json');
+    writeFileSync(join(round, 'run-1/score/checks.json'), JSON.stringify({ ...checks(true), logs: { acceptance: null, probe: { ok: true, responseLines: 1, errorLines: 0, problems: [] } } }));
+    writeFileSync(join(round, 'run-1/score/scorecard.md'), '# Scorecard\n\nno recommendation here\n');
+    writeFileSync(join(round, 'diff.json'), JSON.stringify(diff));
+    const review = renderReview(round);
+    expect(review).toContain('| run-2 | 0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | FAIL | missing |');
+    expect(review).toContain('checks.json unreadable');
+    expect(review).toContain('| run-1 | 0 | PASS | PASS | PASS | 2/2 | PASS | PASS | FAIL | PASS | unreadable |');
+  });
+
   it('never overwrites a review the examiner may have filled in', () => {
     const round = makeRound();
     writeFileSync(join(round, 'review.md'), 'examiner notes');

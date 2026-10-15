@@ -10,6 +10,14 @@ function readJson<T>(file: string): T | null {
   return existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as T) : null;
 }
 
+function readChecks(file: string): { checks: Checks | null; error?: string } {
+  try {
+    return { checks: readJson<Checks>(file) };
+  } catch (error) {
+    return { checks: null, error: (error as Error).message };
+  }
+}
+
 const mark = (ok: boolean | undefined): string => (ok === undefined ? 'n/a' : ok ? 'PASS' : 'FAIL');
 
 const CHECKLIST = [
@@ -42,7 +50,7 @@ export function renderReview(roundDir: string): string {
   for (const run of listRuns(roundDir)) {
     const dir = join(roundDir, run);
     const exit = existsSync(join(dir, 'builder-exit-code')) ? readFileSync(join(dir, 'builder-exit-code'), 'utf8').trim() : '?';
-    const checks = readJson<Checks>(join(dir, 'score/checks.json'));
+    const { checks, error: checksError } = readChecks(join(dir, 'score/checks.json'));
     const scorecardFile = join(dir, 'score/scorecard.md');
     const recommendation = existsSync(scorecardFile)
       ? (/^Recommendation:\s*(SHIP|FIX FIRST|REJECT)\s*$/m.exec(readFileSync(scorecardFile, 'utf8'))?.[1] ?? 'unreadable')
@@ -75,7 +83,7 @@ export function renderReview(roundDir: string): string {
       for (const finding of findings) sections.push(`- ${finding}`);
       sections.push(`- Commits: ${checks.commits} · BUILD_REPORT.md present: ${checks.buildReport ? 'yes' : 'no'}`);
     } else {
-      sections.push('- No checks.json: the checks did not run or crashed.');
+      sections.push(checksError ? `- checks.json unreadable: ${checksError}` : '- No checks.json: the checks did not run or crashed.');
     }
     if (behaviour && !behaviour.ok) sections.push(`- Behaviour differs from golden in ${behaviour.differences.length} place(s)${behaviour.note ? ` (${behaviour.note})` : ''}; see diff.md`);
     sections.push('', '### Examiner checklist', '', ...CHECKLIST, '', '**Verdict (PASS / FAIL):**', '', '**Notes:**', '', '');
@@ -96,7 +104,7 @@ export function renderReview(roundDir: string): string {
 export function writeReview(roundDir: string, options: { force?: boolean } = {}): string {
   const file = join(roundDir, 'review.md');
   if (existsSync(file) && !options.force) throw new Error(`${file} already exists; it may hold examiner notes. Use --force to replace it.`);
-  writeFileSync(file, renderReview(roundDir));
+  writeFileSync(file, renderReview(roundDir), { flag: options.force ? 'w' : 'wx' });
   return file;
 }
 
