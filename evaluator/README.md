@@ -37,8 +37,8 @@ app; nothing here is ever visible to a builder.
 | Check | Traces to |
 |---|---|
 | Contract hash | instructions §7 Phase 1, Appendix A |
-| Manifests (exact deps and scripts) | instructions §2 rule 4, §6.2, §6.3 |
-| Source scan | instructions §2 rules 3 and 7 |
+| Manifests (exact deps and scripts, no forbidden fields or install hooks) | instructions §2 rule 4, §6.1, §6.2, §6.3 |
+| Source scan (skips `scripts/check-rules.mjs`, which §6.4 allows to hold the banned tokens) | instructions §2 rules 3 and 7, §6.4 |
 | Gates | instructions §6.2 scripts, Phase gates |
 | Coverage (report, all files) | instructions §4.5, §6.1 |
 | Acceptance suite | instructions §4 and the contract |

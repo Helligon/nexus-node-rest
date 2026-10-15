@@ -80,6 +80,30 @@ describe('checkManifests', () => {
     ]);
   });
 
+  it('reports forbidden manifest fields and install hooks', () => {
+    const dir = project({
+      ...good,
+      'package.json': { ...good['package.json'], overrides: { a: '1.0.0' }, resolutions: { a: '1.0.0' } },
+      'backend/package.json': {
+        ...good['backend/package.json'],
+        scripts: { test: 'vitest run', postinstall: 'node x.js' },
+        peerDependencies: { react: '19.3.0' },
+        optionalDependencies: { fsevents: '2.3.3' },
+        bundleDependencies: ['express'],
+        bundledDependencies: ['express'],
+      },
+    });
+    expect(checkManifests(dir, INSTRUCTIONS).problems).toEqual([
+      'package.json: field overrides is not allowed',
+      'package.json: field resolutions is not allowed',
+      'backend/package.json: field peerDependencies is not allowed',
+      'backend/package.json: field optionalDependencies is not allowed',
+      'backend/package.json: field bundleDependencies is not allowed',
+      'backend/package.json: field bundledDependencies is not allowed',
+      'backend/package.json scripts: install hook postinstall is not allowed',
+    ]);
+  });
+
   it('reports a missing manifest', () => {
     const dir = project({ 'package.json': good['package.json'], 'backend/package.json': good['backend/package.json'] });
     expect(checkManifests(dir, INSTRUCTIONS).problems).toEqual(['frontend/package.json is missing']);

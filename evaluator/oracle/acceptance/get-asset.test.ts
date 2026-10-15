@@ -29,4 +29,10 @@ describe('GET /assets/{id}', () => {
     const res = await api('GET', '/assets/not-a-uuid');
     expectError(res, 404, 'NOT_FOUND');
   });
+
+  it('returns 404 for an id with malformed percent-encoding', async () => {
+    const res = await api('GET', '/assets/%E0%A4%A');
+    expectError(res, 404, 'NOT_FOUND');
+    assertMatchesContract('GET', '/assets/{id}', 404, res.body);
+  });
 });

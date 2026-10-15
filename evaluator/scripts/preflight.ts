@@ -24,6 +24,7 @@ for (const workspace of ['backend', 'frontend']) {
   mkdirSync(join(dir, workspace));
   writeFileSync(join(dir, workspace, 'package.json'), manifest(workspace));
 }
-const result = spawnSync('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: dir, stdio: 'inherit' });
+// Same resolution cut-off as instructions §7 Phase 1 step 3.
+const result = spawnSync('npm', ['install', '--ignore-scripts', '--before=2026-10-01T00:00:00Z', '--no-audit', '--no-fund'], { cwd: dir, stdio: 'inherit' });
 rmSync(dir, { recursive: true, force: true });
 process.exit(result.status ?? 1);

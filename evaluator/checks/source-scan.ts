@@ -6,6 +6,8 @@ import { listFiles } from './files.js';
 const ROOTS = ['backend/src', 'backend/test', 'frontend/src', 'contract', 'scripts'];
 const SOURCE = /\.(ts|tsx|js|mjs|cjs)$/;
 const LOGGERS = new Set(['backend/src/logger.ts', 'frontend/src/logger.ts']);
+// instructions §6.4: the build's own rule checker is the one file allowed to hold the banned tokens as patterns.
+const EXEMPT = new Set(['scripts/check-rules.mjs']);
 const FORBIDDEN: Array<[RegExp, string]> = [
   [/eslint-disable/, 'eslint-disable comment'],
   [/@ts-(?:ignore|expect-error|nocheck)/, 'TypeScript suppression'],
@@ -25,6 +27,7 @@ export function scanSources(workDir: string): { ok: boolean; findings: string[] 
     for (const relative of listFiles(dir)) {
       if (!SOURCE.test(relative)) continue;
       const path = `${root}/${relative}`;
+      if (EXEMPT.has(path)) continue;
       const appSource = (root === 'backend/src' || root === 'frontend/src') && !isTestFile(path) && !LOGGERS.has(path);
       readFileSync(join(dir, relative), 'utf8').split('\n').forEach((line, index) => {
         for (const [pattern, label] of FORBIDDEN) if (pattern.test(line)) findings.push(`${path}:${index + 1}: ${label}`);

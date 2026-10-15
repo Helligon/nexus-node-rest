@@ -17,15 +17,15 @@
     "path": "/assets",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "location": "/assets/28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+    "location": "/assets/b6080800-daa9-408b-a0c6-842dac605ed3",
     "allow": null,
     "body": {
-      "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+      "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
       "title": "Probe Book A",
       "author": "Probe Author",
       "isbn": "9780306406157",
       "status": "available",
-      "createdAt": "2026-10-15T17:37:59.814Z"
+      "createdAt": "2026-10-15T21:55:05.510Z"
     }
   },
   {
@@ -34,15 +34,15 @@
     "path": "/assets",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "location": "/assets/e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+    "location": "/assets/a1da7830-64a7-46e3-9f41-17828cfe665e",
     "allow": null,
     "body": {
-      "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+      "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
       "title": "Probe Book B",
       "author": "probe author",
       "isbn": "0306406152",
       "status": "on_loan",
-      "createdAt": "2026-10-15T17:37:59.815Z"
+      "createdAt": "2026-10-15T21:55:05.510Z"
     }
   },
   {
@@ -51,15 +51,15 @@
     "path": "/assets",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "location": "/assets/2526f34f-7420-49a6-aed2-7c3e762a6ef3",
+    "location": "/assets/39b81ed4-ccb8-4fe0-a192-581174d6d6a2",
     "allow": null,
     "body": {
-      "id": "2526f34f-7420-49a6-aed2-7c3e762a6ef3",
+      "id": "39b81ed4-ccb8-4fe0-a192-581174d6d6a2",
       "title": "Another Title",
       "author": "Someone Else",
       "isbn": null,
       "status": "lost",
-      "createdAt": "2026-10-15T17:37:59.815Z"
+      "createdAt": "2026-10-15T21:55:05.511Z"
     }
   },
   {
@@ -88,7 +88,7 @@
     "body": {
       "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Request body is invalid",
+        "message": "Request is invalid",
         "details": [
           {
             "field": "title",
@@ -113,7 +113,7 @@
     "body": {
       "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Request body is invalid",
+        "message": "Request is invalid",
         "details": [
           {
             "field": "isbn",
@@ -134,7 +134,7 @@
     "body": {
       "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Request body is invalid",
+        "message": "Request is invalid",
         "details": [
           {
             "field": "status",
@@ -155,7 +155,7 @@
     "body": {
       "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Request body is invalid",
+        "message": "Request is invalid",
         "details": [
           {
             "field": "colour",
@@ -176,7 +176,7 @@
     "body": {
       "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Request body is not valid JSON",
+        "message": "Request is invalid",
         "details": [
           {
             "field": "body",
@@ -227,28 +227,28 @@
     "body": {
       "data": [
         {
-          "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+          "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
           "title": "Probe Book A",
           "author": "Probe Author",
           "isbn": "9780306406157",
           "status": "available",
-          "createdAt": "2026-10-15T17:37:59.814Z"
+          "createdAt": "2026-10-15T21:55:05.510Z"
         },
         {
-          "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+          "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
           "title": "Probe Book B",
           "author": "probe author",
           "isbn": "0306406152",
           "status": "on_loan",
-          "createdAt": "2026-10-15T17:37:59.815Z"
+          "createdAt": "2026-10-15T21:55:05.510Z"
         },
         {
-          "id": "2526f34f-7420-49a6-aed2-7c3e762a6ef3",
+          "id": "39b81ed4-ccb8-4fe0-a192-581174d6d6a2",
           "title": "Another Title",
           "author": "Someone Else",
           "isbn": null,
           "status": "lost",
-          "createdAt": "2026-10-15T17:37:59.815Z"
+          "createdAt": "2026-10-15T21:55:05.511Z"
         }
       ]
     }
@@ -264,20 +264,20 @@
     "body": {
       "data": [
         {
-          "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+          "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
           "title": "Probe Book A",
           "author": "Probe Author",
           "isbn": "9780306406157",
           "status": "available",
-          "createdAt": "2026-10-15T17:37:59.814Z"
+          "createdAt": "2026-10-15T21:55:05.510Z"
         },
         {
-          "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+          "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
           "title": "Probe Book B",
           "author": "probe author",
           "isbn": "0306406152",
           "status": "on_loan",
-          "createdAt": "2026-10-15T17:37:59.815Z"
+          "createdAt": "2026-10-15T21:55:05.510Z"
         }
       ]
     }
@@ -293,12 +293,12 @@
     "body": {
       "data": [
         {
-          "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+          "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
           "title": "Probe Book B",
           "author": "probe author",
           "isbn": "0306406152",
           "status": "on_loan",
-          "createdAt": "2026-10-15T17:37:59.815Z"
+          "createdAt": "2026-10-15T21:55:05.510Z"
         }
       ]
     }
@@ -314,20 +314,20 @@
     "body": {
       "data": [
         {
-          "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+          "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
           "title": "Probe Book A",
           "author": "Probe Author",
           "isbn": "9780306406157",
           "status": "available",
-          "createdAt": "2026-10-15T17:37:59.814Z"
+          "createdAt": "2026-10-15T21:55:05.510Z"
         },
         {
-          "id": "e765ccc8-c5c2-479e-b2e2-fbec5cba88be",
+          "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
           "title": "Probe Book B",
           "author": "probe author",
           "isbn": "0306406152",
           "status": "on_loan",
-          "createdAt": "2026-10-15T17:37:59.815Z"
+          "createdAt": "2026-10-15T21:55:05.510Z"
         }
       ]
     }
@@ -343,12 +343,12 @@
     "body": {
       "data": [
         {
-          "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+          "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
           "title": "Probe Book A",
           "author": "Probe Author",
           "isbn": "9780306406157",
           "status": "available",
-          "createdAt": "2026-10-15T17:37:59.814Z"
+          "createdAt": "2026-10-15T21:55:05.510Z"
         }
       ]
     }
@@ -376,7 +376,7 @@
     "body": {
       "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Query is invalid",
+        "message": "Request is invalid",
         "details": [
           {
             "field": "status",
@@ -397,7 +397,7 @@
     "body": {
       "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Query is invalid",
+        "message": "Request is invalid",
         "details": [
           {
             "field": "colour",
@@ -418,7 +418,7 @@
     "body": {
       "error": {
         "code": "VALIDATION_ERROR",
-        "message": "Query is invalid",
+        "message": "Request is invalid",
         "details": [
           {
             "field": "author",
@@ -437,12 +437,12 @@
     "location": null,
     "allow": null,
     "body": {
-      "id": "28ea7701-e4aa-4171-bf26-7c2e3c8c3e87",
+      "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
       "title": "Probe Book A",
       "author": "Probe Author",
       "isbn": "9780306406157",
       "status": "available",
-      "createdAt": "2026-10-15T17:37:59.814Z"
+      "createdAt": "2026-10-15T21:55:05.510Z"
     }
   },
   {
@@ -456,7 +456,7 @@
     "body": {
       "error": {
         "code": "NOT_FOUND",
-        "message": "Asset not found"
+        "message": "Resource not found"
       }
     }
   },
@@ -471,7 +471,7 @@
     "body": {
       "error": {
         "code": "NOT_FOUND",
-        "message": "Asset not found"
+        "message": "Resource not found"
       }
     }
   },
@@ -531,7 +531,7 @@
     "body": {
       "error": {
         "code": "NOT_FOUND",
-        "message": "Route not found"
+        "message": "Resource not found"
       }
     }
   }

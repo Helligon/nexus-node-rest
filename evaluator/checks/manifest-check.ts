@@ -20,6 +20,10 @@ export interface ManifestResult {
   problems: string[];
 }
 
+// instructions §6.1 and §6.4: no manifest may carry these fields or install hooks.
+const FORBIDDEN_FIELDS = ['peerDependencies', 'optionalDependencies', 'bundleDependencies', 'bundledDependencies', 'overrides', 'resolutions'];
+const INSTALL_HOOKS = new Set(['preinstall', 'install', 'postinstall', 'prepare']);
+
 const WORKSPACE_FILES: Record<string, string> = {
   root: 'package.json',
   backend: 'backend/package.json',
@@ -63,6 +67,9 @@ export function checkManifests(workDir: string, instructions: string): ManifestR
       continue;
     }
     const manifest = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+    for (const field of FORBIDDEN_FIELDS) {
+      if (field in manifest) problems.push(`${file}: field ${field} is not allowed`);
+    }
     for (const section of ['dependencies', 'devDependencies']) {
       const expected = new Map(deps.filter((d) => d.workspace === workspace && d.section === section).map((d) => [d.name, d.version]));
       const actual = (manifest[section] ?? {}) as Record<string, string>;
@@ -81,7 +88,8 @@ export function checkManifests(workDir: string, instructions: string): ManifestR
       if (found !== command) problems.push(`${file} scripts.${name}: expected \`${command}\`, found ${found === undefined ? 'nothing' : `\`${found}\``}`);
     }
     for (const name of Object.keys(actualScripts)) {
-      if (!expectedScripts.has(name)) problems.push(`${file} scripts: unexpected ${name}`);
+      if (INSTALL_HOOKS.has(name)) problems.push(`${file} scripts: install hook ${name} is not allowed`);
+      else if (!expectedScripts.has(name)) problems.push(`${file} scripts: unexpected ${name}`);
     }
   }
   return { ok: problems.length === 0, problems };

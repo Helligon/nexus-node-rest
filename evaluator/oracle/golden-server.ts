@@ -1,7 +1,10 @@
 // Independent, dependency-free implementation of the contract and the instructions' decisions log.
 // It proves the acceptance suite and produces the behaviour baseline. Never shipped to a build.
+// Error messages and issue texts, and their order, follow instructions §4.7 exactly.
 // Instructed behaviours it deliberately does not model (extend it before adding probe steps for them):
 // - a JSON body with charset=latin1 → 415;
+// - Content-Encoding handling (an unsupported encoding such as `compress` → 415);
+// - a body that cannot be read (aborted request) → 400 with issue `could not be read`;
 // - CORS preflight OPTIONS → 204.
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -33,6 +36,7 @@ const STATUSES: readonly string[] = ['available', 'on_loan', 'lost'];
 const ASSET_FIELDS: readonly string[] = ['title', 'author', 'isbn', 'status'];
 const FILTER_FIELDS: readonly string[] = ['author', 'status', 'q'];
 const BODY_LIMIT = 10 * 1024;
+const INVALID = 'Request is invalid';
 
 export function normaliseIsbn(raw: string): string {
   return raw.replace(/[\s-]/g, '').toUpperCase();
@@ -85,9 +89,6 @@ function validateNewAsset(body: unknown): { value?: Omit<Asset, 'id' | 'createdA
   }
   const input = body as Record<string, unknown>;
   const issues: Issue[] = [];
-  for (const key of Object.keys(input)) {
-    if (!ASSET_FIELDS.includes(key)) issues.push({ field: key, issue: 'is not allowed' });
-  }
   const text = (field: 'title' | 'author', max: number): string => {
     const value = input[field];
     if (typeof value !== 'string') {
@@ -116,18 +117,19 @@ function validateNewAsset(body: unknown): { value?: Omit<Asset, 'id' | 'createdA
       status = input.status as Status;
     }
   }
+  for (const key of Object.keys(input)) {
+    if (!ASSET_FIELDS.includes(key)) issues.push({ field: key, issue: 'is not allowed' });
+  }
   return issues.length > 0 ? { issues } : { value: { title, author, isbn, status }, issues };
 }
 
 function parseFilter(params: URLSearchParams): { filter?: Filter; issues: Issue[] } {
   const issues: Issue[] = [];
   const filter: Filter = {};
-  for (const key of new Set(params.keys())) {
+  const keys = [...new Set(params.keys())];
+  for (const key of FILTER_FIELDS) {
+    if (!params.has(key)) continue;
     const values = params.getAll(key);
-    if (!FILTER_FIELDS.includes(key)) {
-      issues.push({ field: key, issue: 'is not a supported filter' });
-      continue;
-    }
     if (values.length > 1) {
       issues.push({ field: key, issue: 'must be given once' });
       continue;
@@ -141,6 +143,9 @@ function parseFilter(params: URLSearchParams): { filter?: Filter; issues: Issue[
     const max = key === 'author' ? 100 : 200;
     if (value.length < 1 || value.length > max) issues.push({ field: key, issue: `must be 1-${max} characters` });
     else filter[key as 'author' | 'q'] = value;
+  }
+  for (const key of keys) {
+    if (!FILTER_FIELDS.includes(key)) issues.push({ field: key, issue: 'is not a supported filter' });
   }
   return issues.length > 0 ? { issues } : { filter, issues };
 }
@@ -160,12 +165,16 @@ async function create(req: IncomingMessage, res: ServerResponse, assets: Asset[]
   try {
     body = text.length === 0 ? {} : JSON.parse(text);
   } catch {
-    fail(res, 400, 'VALIDATION_ERROR', 'Request body is not valid JSON', [{ field: 'body', issue: 'must be valid JSON' }]);
+    body = undefined;
+  }
+  // express.json() in strict mode rejects any top-level value other than an object or array as malformed.
+  if (body === null || typeof body !== 'object') {
+    fail(res, 400, 'VALIDATION_ERROR', INVALID, [{ field: 'body', issue: 'must be valid JSON' }]);
     return;
   }
   const { value, issues } = validateNewAsset(body);
   if (!value) {
-    fail(res, 400, 'VALIDATION_ERROR', 'Request body is invalid', issues);
+    fail(res, 400, 'VALIDATION_ERROR', INVALID, issues);
     return;
   }
   if (value.isbn !== null && assets.some((asset) => asset.isbn === value.isbn)) {
@@ -180,7 +189,7 @@ async function create(req: IncomingMessage, res: ServerResponse, assets: Asset[]
 function list(res: ServerResponse, url: URL, assets: Asset[]): void {
   const { filter, issues } = parseFilter(url.searchParams);
   if (!filter) {
-    fail(res, 400, 'VALIDATION_ERROR', 'Query is invalid', issues);
+    fail(res, 400, 'VALIDATION_ERROR', INVALID, issues);
     return;
   }
   const author = filter.author?.toLowerCase();
@@ -215,16 +224,24 @@ async function route(req: IncomingMessage, res: ServerResponse, url: URL, assets
   }
   const match = /^\/assets\/([^/]+)$/.exec(path);
   if (match) {
+    // Express decodes path parameters before any handler runs, so a malformed one is 404 whatever the method.
+    let id: string;
+    try {
+      id = decodeURIComponent(match[1] ?? '');
+    } catch {
+      fail(res, 404, 'NOT_FOUND', 'Resource not found');
+      return;
+    }
     if (!isGet) {
       methodNotAllowed(res, 'GET');
       return;
     }
-    const asset = assets.find((candidate) => candidate.id === decodeURIComponent(match[1] ?? ''));
+    const asset = assets.find((candidate) => candidate.id === id);
     if (asset) send(res, 200, asset);
-    else fail(res, 404, 'NOT_FOUND', 'Asset not found');
+    else fail(res, 404, 'NOT_FOUND', 'Resource not found');
     return;
   }
-  fail(res, 404, 'NOT_FOUND', 'Route not found');
+  fail(res, 404, 'NOT_FOUND', 'Resource not found');
 }
 
 export function createGoldenServer(log: (line: string) => void = (line) => process.stdout.write(`${line}\n`)): Server {

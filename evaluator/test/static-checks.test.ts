@@ -51,6 +51,14 @@ describe('scanSources', () => {
     ]);
   });
 
+  it('skips scripts/check-rules.mjs, which instructions §6.4 lets hold the banned tokens as patterns', () => {
+    const dir = tree({
+      'scripts/check-rules.mjs': "const BANNED = [/eslint-disable/, /@ts-ignore/, /\\bit\\.skip\\b/, /v8 ignore/];\n",
+      'scripts/smoke.ts': '// eslint-disable-next-line\n',
+    });
+    expect(scanSources(dir).findings).toEqual(['scripts/smoke.ts:1: eslint-disable comment']);
+  });
+
   it('catches ts-nocheck and the extended skip, focus and fail forms', () => {
     const dir = tree({
       'backend/src/a.ts': '// @ts-nocheck\n',
