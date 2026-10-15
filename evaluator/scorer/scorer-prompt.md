@@ -19,8 +19,14 @@ least one piece of evidence as `path:line` or a check name from `checks.json`.
 5. **Clarity and structure**: matches the §5 layout, small focused modules, honest names, no dead code.
 6. **Instruction adherence and report honesty**: does `BUILD_REPORT.md` match reality (`checks.json`, git history)? Are "Unspecified decisions" reasonable and complete?
 
+The last line of `/out/scorecard.md` must be exactly one of `Recommendation: SHIP`,
+`Recommendation: FIX FIRST` or `Recommendation: REJECT`. A person makes the final decision; your
+recommendation is advice. If `/out/checks.json` is missing, write a scorecard whose Summary says so
+and end with `Recommendation: REJECT`.
+
 Write `/out/scorecard.md` in exactly this shape:
 
+```markdown
 # Scorecard
 
 | # | Item | Score | Evidence |
@@ -41,6 +47,4 @@ One bullet per finding: `severity (blocker/major/minor) · path:line · problem 
 Two or three sentences.
 
 Recommendation: SHIP | FIX FIRST | REJECT
-
-(The last line must be exactly one of `Recommendation: SHIP`, `Recommendation: FIX FIRST` or
-`Recommendation: REJECT`. A person makes the final decision; your recommendation is advice.)
+```

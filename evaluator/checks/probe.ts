@@ -53,7 +53,7 @@ export const PROBE_STEPS: ProbeStep[] = [
   { name: 'unknown-route', method: 'GET', path: '/no-such-route' },
 ];
 
-export async function runProbe(baseUrl: string, steps: ProbeStep[] = PROBE_STEPS): Promise<ProbeRecord[]> {
+export async function runProbe(baseUrl: string, steps: ProbeStep[] = PROBE_STEPS, timeoutMs = 10_000): Promise<ProbeRecord[]> {
   const ids = new Map<string, string>();
   const records: ProbeRecord[] = [];
   for (const step of steps) {
@@ -66,24 +66,34 @@ export async function runProbe(baseUrl: string, steps: ProbeStep[] = PROBE_STEPS
     }
     if (step.rawBody !== undefined) body = step.rawBody;
     if (step.contentType !== undefined) headers['content-type'] = step.contentType;
-    const res = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, { method: step.method, headers, body });
-    const text = await res.text();
-    let parsed: unknown = text.length === 0 ? null : text;
+    let status: number;
+    let responseHeaders: Headers | null = null;
+    let parsed: unknown;
     try {
-      if (text.length > 0) parsed = JSON.parse(text);
-    } catch {
-      // keep the raw text; it will show up as a difference
+      const res = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, { method: step.method, headers, body, signal: AbortSignal.timeout(timeoutMs) });
+      const text = await res.text();
+      status = res.status;
+      responseHeaders = res.headers;
+      parsed = text.length === 0 ? null : text;
+      try {
+        if (text.length > 0) parsed = JSON.parse(text);
+      } catch {
+        // keep the raw text; it will show up as a difference
+      }
+    } catch (err) {
+      status = 0;
+      parsed = { error: `request failed: ${err instanceof Error ? err.message : String(err)}` };
     }
     const id = (parsed as { id?: unknown } | null)?.id;
-    if (res.status === 201 && typeof id === 'string') ids.set(step.name, id);
+    if (status === 201 && typeof id === 'string') ids.set(step.name, id);
     records.push({
       name: step.name,
       method: step.method,
       path: step.path,
-      status: res.status,
-      contentType: res.headers.get('content-type'),
-      location: res.headers.get('location'),
-      allow: res.headers.get('allow'),
+      status,
+      contentType: responseHeaders?.get('content-type') ?? null,
+      location: responseHeaders?.get('location') ?? null,
+      allow: responseHeaders?.get('allow') ?? null,
       body: parsed,
     });
   }

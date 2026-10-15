@@ -7,6 +7,8 @@
 set -euo pipefail
 ROUND="${1:?usage: run.sh <round> [runs]}"
 RUNS="${2:-3}"
+if [[ ! "$ROUND" =~ ^[A-Za-z0-9_-]+$ ]]; then echo "invalid round '$ROUND' (use letters, digits, - and _)" >&2; exit 2; fi
+if [[ ! "$RUNS" =~ ^[1-9][0-9]*$ ]]; then echo "invalid runs '$RUNS' (positive integer)" >&2; exit 2; fi
 EVAL="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$EVAL/.." && pwd)"
 BUILDER_MODEL="${SHELFWRIGHT_BUILDER_MODEL:-claude-sonnet-5-5}"
@@ -21,9 +23,10 @@ fi
 if [[ "$BUILDER_MODEL" == "$SCORER_MODEL" ]]; then
   echo "Note: builder and scorer use the same model ($BUILDER_MODEL). They are still separate sessions." >&2
 fi
-(cd "$ROOT/shelfwright" && npm run --silent check) || { echo "instructions.md is stale: run npm run assemble in shelfwright/" >&2; exit 2; }
+(cd "$ROOT/shelfwright" && npm run --silent check) || { echo "shelfwright check failed: instructions.md is stale (run npm run assemble) or shelfwright dependencies are not installed" >&2; exit 2; }
 
 ROUND_DIR="$EVAL/rounds/$ROUND"
+if [[ -e "$ROUND_DIR" ]]; then echo "$ROUND_DIR already exists; use a new round number" >&2; exit 2; fi
 mkdir -p "$ROUND_DIR"
 shasum -a 256 "$ROOT/instructions.md" | cut -d' ' -f1 > "$ROUND_DIR/instructions.sha256"
 printf 'builder=%s\nscorer=%s\n' "$BUILDER_MODEL" "$SCORER_MODEL" > "$ROUND_DIR/models.txt"

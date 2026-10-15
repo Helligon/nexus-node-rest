@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export DOCKER_BUILDKIT=1
 EVAL="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$EVAL/.." && pwd)"
 docker build -q -f "$EVAL/docker/builder.Dockerfile" -t shelfwright-builder "$EVAL/docker" >/dev/null

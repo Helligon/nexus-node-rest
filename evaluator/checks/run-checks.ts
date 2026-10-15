@@ -22,7 +22,7 @@ export interface Checks {
   coverage: { ok: boolean; totals: Record<string, number> | null; problems: string[] };
   audit: GateResult;
   oracle: GateResult;
-  logs: { acceptance: LogCheckResult; probe: LogCheckResult } | null;
+  logs: { acceptance: LogCheckResult | null; probe: LogCheckResult | null } | null;
   probe: boolean;
   buildReport: boolean;
   commits: number;
@@ -79,33 +79,52 @@ async function main(): Promise<void> {
   let probe = false;
 
   if (existsSync(join(workDir, 'backend/dist/server.js'))) {
+    logs = { acceptance: null, probe: null };
     try {
       const forAcceptance = await startServer({ command: 'node', args: ['backend/dist/server.js'], cwd: workDir, port: 4100 });
-      oracle = await runGate('acceptance', oracleCommand, evaluatorDir, logDir, { env: { BASE_URL: forAcceptance.url } });
-      const acceptanceOutput = await forAcceptance.stop();
+      let acceptanceOutput = '';
+      try {
+        oracle = await runGate('acceptance', oracleCommand, evaluatorDir, logDir, { env: { BASE_URL: forAcceptance.url } });
+      } finally {
+        acceptanceOutput = await forAcceptance.stop();
+      }
       writeFileSync(join(logDir, 'server-acceptance.log'), acceptanceOutput);
+      logs.acceptance = checkLogs(acceptanceOutput);
 
       const forProbe = await startServer({ command: 'node', args: ['backend/dist/server.js'], cwd: workDir, port: 4101 });
-      const records = await runProbe(forProbe.url);
-      const probeOutput = await forProbe.stop();
+      let records: Awaited<ReturnType<typeof runProbe>>;
+      let probeOutput = '';
+      try {
+        records = await runProbe(forProbe.url);
+      } finally {
+        probeOutput = await forProbe.stop();
+      }
       writeFileSync(join(logDir, 'server-probe.log'), probeOutput);
       writeFileSync(join(outDir, 'probe.json'), `${JSON.stringify(records, null, 2)}\n`);
       probe = true;
 
       // +1 for the readiness /ping made by startServer
-      logs = { acceptance: checkLogs(acceptanceOutput), probe: checkLogs(probeOutput, { expectedResponses: PROBE_STEPS.length + 1 }) };
+      logs.probe = checkLogs(probeOutput, { expectedResponses: PROBE_STEPS.length + 1 });
     } catch (err) {
       problems.push(`server: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
+  const guard = <T>(fn: () => T, onError: (message: string) => T): T => {
+    try {
+      return fn();
+    } catch (err) {
+      return onError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const checks: Checks = {
     generatedAt: new Date().toISOString(),
-    contract: checkContract(workDir, join(evaluatorDir, '../shelfwright/contract/openapi.yaml')),
+    contract: guard(() => checkContract(workDir, join(evaluatorDir, '../shelfwright/contract/openapi.yaml')), (message) => ({ ok: false, problem: `contract check crashed: ${message}` })),
     manifests,
-    sourceScan: scanSources(workDir),
+    sourceScan: guard(() => scanSources(workDir), (message) => ({ ok: false, findings: [`source scan crashed: ${message}`] })),
     gates,
-    coverage: checkCoverage(workDir),
+    coverage: guard(() => checkCoverage(workDir), (message) => ({ ok: false, totals: null, problems: [`coverage check crashed: ${message}`] })),
     audit,
     oracle,
     logs,

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { checkLogs } from '../checks/log-check.js';
@@ -72,4 +73,29 @@ describe('probe against the golden server', () => {
     const baseline = JSON.parse(readFileSync(new URL('../oracle/golden-probe.json', import.meta.url), 'utf8')) as ProbeRecord[];
     expect(normaliseRecords(records)).toEqual(normaliseRecords(baseline));
   });
+});
+
+describe('probe against a hung server', () => {
+  it('records a status 0 step instead of throwing when a request times out', async () => {
+    const hung = createServer((req, res) => {
+      if (req.url === '/ping') res.end('{}');
+      // every other path never responds
+    });
+    await new Promise<void>((resolve) => hung.listen(0, '127.0.0.1', resolve));
+    try {
+      const url = `http://127.0.0.1:${(hung.address() as AddressInfo).port}`;
+      const steps = [
+        { name: 'ping', method: 'GET', path: '/ping' },
+        { name: 'stuck', method: 'GET', path: '/assets' },
+        { name: 'stuck-too', method: 'GET', path: '/assets/x' },
+      ];
+      const result = await runProbe(url, steps, 200);
+      expect(result.map((record) => [record.name, record.status])).toEqual([['ping', 200], ['stuck', 0], ['stuck-too', 0]]);
+      expect(result[1]).toMatchObject({ contentType: null, location: null, allow: null });
+      expect(JSON.stringify(result[1]?.body)).toContain('request failed');
+    } finally {
+      hung.closeAllConnections();
+      await new Promise<void>((resolve) => hung.close(() => resolve()));
+    }
+  }, 5000);
 });
