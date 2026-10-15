@@ -17,15 +17,15 @@
     "path": "/assets",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "location": "/assets/b6080800-daa9-408b-a0c6-842dac605ed3",
+    "location": "/assets/3a930fbe-62eb-4df7-a950-54d30f6973f7",
     "allow": null,
     "body": {
-      "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
+      "id": "3a930fbe-62eb-4df7-a950-54d30f6973f7",
       "title": "Probe Book A",
       "author": "Probe Author",
       "isbn": "9780306406157",
       "status": "available",
-      "createdAt": "2026-10-15T21:55:05.510Z"
+      "createdAt": "2026-10-15T22:04:53.350Z"
     }
   },
   {
@@ -34,15 +34,15 @@
     "path": "/assets",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "location": "/assets/a1da7830-64a7-46e3-9f41-17828cfe665e",
+    "location": "/assets/5dc9290e-9c40-4c87-b5f1-d86491b19cb4",
     "allow": null,
     "body": {
-      "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
+      "id": "5dc9290e-9c40-4c87-b5f1-d86491b19cb4",
       "title": "Probe Book B",
       "author": "probe author",
       "isbn": "0306406152",
       "status": "on_loan",
-      "createdAt": "2026-10-15T21:55:05.510Z"
+      "createdAt": "2026-10-15T22:04:53.350Z"
     }
   },
   {
@@ -51,15 +51,15 @@
     "path": "/assets",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "location": "/assets/39b81ed4-ccb8-4fe0-a192-581174d6d6a2",
+    "location": "/assets/5cd68d99-cbb0-42d2-afa8-142460513346",
     "allow": null,
     "body": {
-      "id": "39b81ed4-ccb8-4fe0-a192-581174d6d6a2",
+      "id": "5cd68d99-cbb0-42d2-afa8-142460513346",
       "title": "Another Title",
       "author": "Someone Else",
       "isbn": null,
       "status": "lost",
-      "createdAt": "2026-10-15T21:55:05.511Z"
+      "createdAt": "2026-10-15T22:04:53.351Z"
     }
   },
   {
@@ -227,28 +227,28 @@
     "body": {
       "data": [
         {
-          "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
+          "id": "3a930fbe-62eb-4df7-a950-54d30f6973f7",
           "title": "Probe Book A",
           "author": "Probe Author",
           "isbn": "9780306406157",
           "status": "available",
-          "createdAt": "2026-10-15T21:55:05.510Z"
+          "createdAt": "2026-10-15T22:04:53.350Z"
         },
         {
-          "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
+          "id": "5dc9290e-9c40-4c87-b5f1-d86491b19cb4",
           "title": "Probe Book B",
           "author": "probe author",
           "isbn": "0306406152",
           "status": "on_loan",
-          "createdAt": "2026-10-15T21:55:05.510Z"
+          "createdAt": "2026-10-15T22:04:53.350Z"
         },
         {
-          "id": "39b81ed4-ccb8-4fe0-a192-581174d6d6a2",
+          "id": "5cd68d99-cbb0-42d2-afa8-142460513346",
           "title": "Another Title",
           "author": "Someone Else",
           "isbn": null,
           "status": "lost",
-          "createdAt": "2026-10-15T21:55:05.511Z"
+          "createdAt": "2026-10-15T22:04:53.351Z"
         }
       ]
     }
@@ -264,20 +264,20 @@
     "body": {
       "data": [
         {
-          "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
+          "id": "3a930fbe-62eb-4df7-a950-54d30f6973f7",
           "title": "Probe Book A",
           "author": "Probe Author",
           "isbn": "9780306406157",
           "status": "available",
-          "createdAt": "2026-10-15T21:55:05.510Z"
+          "createdAt": "2026-10-15T22:04:53.350Z"
         },
         {
-          "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
+          "id": "5dc9290e-9c40-4c87-b5f1-d86491b19cb4",
           "title": "Probe Book B",
           "author": "probe author",
           "isbn": "0306406152",
           "status": "on_loan",
-          "createdAt": "2026-10-15T21:55:05.510Z"
+          "createdAt": "2026-10-15T22:04:53.350Z"
         }
       ]
     }
@@ -293,12 +293,12 @@
     "body": {
       "data": [
         {
-          "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
+          "id": "5dc9290e-9c40-4c87-b5f1-d86491b19cb4",
           "title": "Probe Book B",
           "author": "probe author",
           "isbn": "0306406152",
           "status": "on_loan",
-          "createdAt": "2026-10-15T21:55:05.510Z"
+          "createdAt": "2026-10-15T22:04:53.350Z"
         }
       ]
     }
@@ -314,20 +314,20 @@
     "body": {
       "data": [
         {
-          "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
+          "id": "3a930fbe-62eb-4df7-a950-54d30f6973f7",
           "title": "Probe Book A",
           "author": "Probe Author",
           "isbn": "9780306406157",
           "status": "available",
-          "createdAt": "2026-10-15T21:55:05.510Z"
+          "createdAt": "2026-10-15T22:04:53.350Z"
         },
         {
-          "id": "a1da7830-64a7-46e3-9f41-17828cfe665e",
+          "id": "5dc9290e-9c40-4c87-b5f1-d86491b19cb4",
           "title": "Probe Book B",
           "author": "probe author",
           "isbn": "0306406152",
           "status": "on_loan",
-          "createdAt": "2026-10-15T21:55:05.510Z"
+          "createdAt": "2026-10-15T22:04:53.350Z"
         }
       ]
     }
@@ -343,12 +343,12 @@
     "body": {
       "data": [
         {
-          "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
+          "id": "3a930fbe-62eb-4df7-a950-54d30f6973f7",
           "title": "Probe Book A",
           "author": "Probe Author",
           "isbn": "9780306406157",
           "status": "available",
-          "createdAt": "2026-10-15T21:55:05.510Z"
+          "createdAt": "2026-10-15T22:04:53.350Z"
         }
       ]
     }
@@ -437,12 +437,12 @@
     "location": null,
     "allow": null,
     "body": {
-      "id": "b6080800-daa9-408b-a0c6-842dac605ed3",
+      "id": "3a930fbe-62eb-4df7-a950-54d30f6973f7",
       "title": "Probe Book A",
       "author": "Probe Author",
       "isbn": "9780306406157",
       "status": "available",
-      "createdAt": "2026-10-15T21:55:05.510Z"
+      "createdAt": "2026-10-15T22:04:53.350Z"
     }
   },
   {

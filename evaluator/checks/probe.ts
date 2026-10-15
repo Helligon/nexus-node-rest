@@ -110,16 +110,13 @@ export function normaliseRecords(records: ProbeRecord[]): ProbeRecord[] {
     return tokens.get(key) as string;
   };
   const walk = (value: unknown, key?: string): unknown => {
-    if (Array.isArray(value)) {
-      if (key === 'details') return [...new Set(value.map((detail) => String((detail as { field?: unknown }).field)))].sort();
-      return value.map((item) => walk(item));
-    }
+    // instructions §4.7 pins messages, issue texts and detail order, so those are compared exactly.
+    if (Array.isArray(value)) return value.map((item) => walk(item));
     if (value !== null && typeof value === 'object') {
       return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [childKey, walk(child, childKey)]));
     }
     if (typeof value === 'string') {
       if (key === 'createdAt') return '<timestamp>';
-      if (key === 'message' || key === 'issue') return '<text>';
       return value.replace(UUID, (match) => token(match));
     }
     return value;

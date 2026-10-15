@@ -60,13 +60,24 @@ describe('probe against the golden server', () => {
     expect(checkLogs(lines.join('\n'), { expectedResponses: PROBE_STEPS.length }).ok).toBe(true);
   });
 
-  it('normalises ids, timestamps, messages and detail order', () => {
+  it('normalises ids and timestamps but keeps exact texts and detail order', () => {
     const normalised = normaliseRecords(records);
     const createA = normalised.find((record) => record.name === 'create-a');
     expect(createA?.location).toBe('/assets/<id:1>');
     expect(createA?.body).toMatchObject({ id: '<id:1>', createdAt: '<timestamp>' });
     const missing = normalised.find((record) => record.name === 'missing-fields');
-    expect(missing?.body).toEqual({ error: { code: 'VALIDATION_ERROR', message: '<text>', details: ['author', 'title'] } });
+    expect(missing?.body).toEqual({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Request is invalid',
+        details: [
+          { field: 'title', issue: 'is required and must be a string' },
+          { field: 'author', issue: 'is required and must be a string' },
+        ],
+      },
+    });
+    const reordered = normaliseRecords([{ ...(missing as ProbeRecord), body: { error: { code: 'VALIDATION_ERROR', message: 'Bad', details: [{ field: 'author', issue: 'x' }, { field: 'title', issue: 'y' }] } } }]);
+    expect(reordered[0]?.body).toEqual({ error: { code: 'VALIDATION_ERROR', message: 'Bad', details: [{ field: 'author', issue: 'x' }, { field: 'title', issue: 'y' }] } });
   });
 
   it('matches the committed golden baseline', () => {

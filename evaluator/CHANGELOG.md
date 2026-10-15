@@ -21,3 +21,4 @@ finding that caused it and the examiner's approval.
 | 2026-10-15 | 1 | judge.md #14 | Form: inline errors for title/author/isbn/status, general alert text for body/unknown fields, clearing on resubmit, reset after 201 (§3.2) | examiner |
 | 2026-10-15 | 1 | judge.md #15 | `listAssets` trims each filter, then omits it if empty (§3.1) | examiner |
 | 2026-10-15 | 1 | judge.md #1–#15 | New §2.1 "What not to do" list, one bullet per finding above | examiner |
+| 2026-10-15 | 1 | judge fix-wave review | ESLint `no-unused-vars` with `argsIgnorePattern: '^_'` and a named `errorHandler(logger)` export (§6.1, Phase 2 §2.1/§2.2, item 23); "What not to do" heading unnumbered; §6.4: BUILD_REPORT `- …:` and coverage lines must be filled, title check triggers on any frontend test file, `.cjs` scanned; list wording. Evaluator: `check-rules` gate; probe compares exact messages, issues and detail order; golden baseline regenerated | examiner |

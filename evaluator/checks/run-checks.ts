@@ -36,6 +36,7 @@ export interface Checks {
 // Script names come from instructions.md §6.2.
 const GATES: Array<[string, string]> = [
   ['install', 'npm ci --ignore-scripts'],
+  ['check-rules', 'npm run check:rules'],
   ['typecheck', 'npm run typecheck'],
   ['lint', 'npm run lint'],
   ['contract-validate', 'npm run contract:validate'],
