@@ -49,6 +49,10 @@ describe('the real instructions.md', () => {
     expect(assembled.match(FORBIDDEN_VOCABULARY)).toBeNull();
   });
 
+  it('never tells the reader to use npx', () => {
+    expect(assembled).not.toMatch(/\bnpx\b/);
+  });
+
   it('has dependency and script tables', () => {
     expect(assembled).toMatch(/<!-- DEPENDENCIES-BEGIN -->[\s\S]+<!-- DEPENDENCIES-END -->/);
     expect(assembled).toMatch(/<!-- SCRIPTS-BEGIN -->[\s\S]+<!-- SCRIPTS-END -->/);

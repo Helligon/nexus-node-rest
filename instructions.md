@@ -24,12 +24,33 @@ These override any habit or default you have.
    - Do not edit `contract/openapi.yaml` or lower the coverage thresholds.
    - Do not add `eslint-disable`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck` comments; do not skip, focus or invert tests in any form (`.skip`, `.skipIf`, `.runIf`, `.only`, `.todo`, `.fails`, including chained forms such as `it.concurrent.skip`); and do not add `istanbul`/`v8`/`c8 ignore` comments.
    - Do not delete or loosen a test to make it pass. Do not exclude files from coverage beyond what §6 allows.
-4. **Dependencies are exact.** Use only the packages in the dependency table (§6.3), at exactly those versions, with no `^` or `~`. Do not add, remove or upgrade anything. Always pass `--ignore-scripts` to `npm install` and `npm ci`. Never run `npm audit fix`. Exact, known-safe versions avoid pulling a newly published compromised release.
-5. **No outside code.** Download nothing except npm packages, through npm. Never pipe anything from the network into a shell.
+   - `eslint.config.js` disables inline ESLint configuration, and `npm run check:rules` (§6.4) searches the sources for every token listed above. `scripts/check-rules.mjs` is the only file allowed to contain these tokens, as search patterns.
+4. **Dependencies are exact.** Use only the packages in the dependency table (§6.3), at exactly those versions, with no `^` or `~`. Do not add, remove or upgrade anything. Always pass `--ignore-scripts` to `npm install` and `npm ci`. Never run `npm audit fix`. Exact, known-safe versions avoid pulling a newly published compromised release. Never use `--force` or `--legacy-peer-deps`. If installation fails (for example ERESOLVE, or a version that does not exist), treat it as a gate failure under rule 2; record the exact error.
+5. **No outside code.** Download nothing except npm packages, through npm. Never pipe anything from the network into a shell. Never let npm download a tool in order to run it: run tools only through the npm scripts in §6.2, or with `npm exec --no -- <tool>`, which refuses to download anything.
 6. **No secrets.** The service has none. Configuration comes only from the environment variables in §4.4.
-7. **Logging is restricted** (§4.3). Only `backend/src/logger.ts` and `frontend/src/logger.ts` may use `console`. ESLint enforces this.
+7. **Logging is restricted** (§4.3). Only `backend/src/logger.ts` and `frontend/src/logger.ts` may use `console`. ESLint and `npm run check:rules` enforce this.
 8. **Where this file is silent,** choose the simplest option consistent with the contract and §4. Record every such choice under "Unspecified decisions" in `BUILD_REPORT.md`. There is nobody to ask.
 9. **Commit as you go.** In Phase 2, commit after each checklist item (`backend <n>: <behaviour>`). Commit after every gate (`phase <n>: <name>`).
+
+### 2.1 What not to do
+
+Each of these mistakes is easy to make. The reference in parentheses points to what to do instead.
+
+- Don't let a malformed URL become a 500. Map a `URIError` to `404 NOT_FOUND` (Phase 2, §2.2).
+- Don't let body-parser errors that are not listed fall through to a 500 (Phase 2, §2.2).
+- Don't invent error wording. Use the exact texts in §4.7.
+- Don't count characters any way other than `.length` after `.trim()` (§4.1).
+- Don't silence linters or tests. Inline ESLint configuration is disabled, and `npm run check:rules` searches for suppressions (rule 3, §6.4).
+- Don't hand-edit versions, scripts or coverage thresholds. `npm run check:rules` compares them with §6.2, §6.3 and §6.1.
+- Don't skip the frontend tests with the titles listed in Phase 3, §3.3.
+- Don't skip `README.md` or `BUILD_REPORT.md`. `node scripts/check-rules.mjs --report` checks both (Phase 4).
+- Don't run a tool in a way that lets npm download it. Use the npm scripts or `npm exec --no --` (rule 5).
+- Don't run the first install without `--before=2026-10-01T00:00:00Z` (Phase 1 step 3).
+- Don't use `--force` or `--legacy-peer-deps` (rule 4).
+- Don't add a fallback for `req.body` that no test can reach. `parseNewAsset` handles `undefined` (Phase 2, §2.2).
+- Don't let the smoke script leave a server running (Phase 2, §2.4).
+- Don't guess where form errors go (Phase 3, §3.2).
+- Don't send filters that are empty after trimming (Phase 3, §3.1).
 
 ## 3. Prerequisites
 
@@ -47,8 +68,8 @@ The original brief was silent on everything below. These decisions are final.
 | Topic | Decision | Reason |
 |---|---|---|
 | What an asset is | A book: `title`, `author`, optional `isbn`, `status`, plus server-set `id` and `createdAt`. | The domain is a library; ISBN gives books a real-world identity. |
-| `title` | Required string. Trimmed. 1–200 characters after trimming. | Reject blank and runaway input. |
-| `author` | Required string. Trimmed. 1–100 characters after trimming. | As above. |
+| `title` | Required string. Trimmed. 1–200 characters after trimming (characters as defined below the table). | Reject blank and runaway input. |
+| `author` | Required string. Trimmed. 1–100 characters after trimming (characters as defined below the table). | As above. |
 | `isbn` | Optional; `null` or omitted means "no ISBN". Spaces and hyphens are removed and `x` is upper-cased. It must then be a valid ISBN-10 (9 digits + digit or `X`, mod-11 checksum) or ISBN-13 (13 digits, mod-10 checksum). Stored and returned normalised. An empty string is invalid. | People type ISBNs with hyphens; one canonical form makes uniqueness meaningful. |
 | ISBN uniqueness | No two assets share a normalised ISBN → `409 CONFLICT`. ISBN-10 and ISBN-13 forms of the same book are **not** treated as equal. Assets without an ISBN may share title and author. | Catch double registration; libraries hold copies of items without ISBNs. |
 | `status` | `available` \| `on_loan` \| `lost`; default `available`. Set only at creation. No endpoint changes it. | The brief asks for register and list only. |
@@ -57,23 +78,25 @@ The original brief was silent on everything below. These decisions are final.
 | Unknown POST fields | Rejected with `400`; one detail per unknown field, `field` = its name. | Fail loudly; silent dropping hides client bugs. |
 | Persistence | In memory, behind an async `AssetRepository` interface. Data is lost on restart. | Enough for this service. The interface makes a database a one-file change (§4.6). |
 
+Everywhere in this file, a length in "characters" means UTF-16 code units as measured by `String.prototype.length` after `String.prototype.trim()`: the length of `value` is `value.trim().length`. For example, `📚` counts as 2 characters, so a title of 100 `📚` is accepted and a title of 101 is too long.
+
 ### 4.2 HTTP behaviour
 
 | Topic | Decision |
 |---|---|
 | Base path | The backend serves `/ping` and `/assets` at its root. The frontend reaches it through `/api`, which the Vite dev proxy strips. |
-| Filters on `GET /assets` | `author`: case-insensitive exact match. `status`: one of the enum values. `q`: case-insensitive substring of `title`. All values are trimmed first. Filters combine with AND. |
-| Invalid query | An unknown parameter, a repeated parameter, a value that is empty after trimming, `author` over 100 characters, `q` over 200 characters, or an unknown `status` → `400 VALIDATION_ERROR` with a detail whose `field` is the parameter name. |
+| Filters on `GET /assets` | `author`: case-insensitive exact match. `status`: one of the enum values. `q`: case-insensitive substring of `title`. All values are trimmed first (`String.prototype.trim()`). Filters combine with AND. |
+| Invalid query | An unknown parameter, a repeated parameter, a value that is empty after trimming, `author` over 100 characters, `q` over 200 characters (characters as defined in §4.1), or an unknown `status` → `400 VALIDATION_ERROR` with a detail whose `field` is the parameter name. |
 | List order and shape | Creation order, oldest first. Body `{"data": [...]}`. No pagination. |
-| `GET /assets/{id}` | `200` with the asset. Otherwise `404 NOT_FOUND`, including ids that are not UUIDs. |
+| `GET /assets/{id}` | `200` with the asset. Otherwise `404 NOT_FOUND`, including ids that are not UUIDs or have malformed percent-encoding. |
 | `POST /assets` success | `201`; the body is the created asset; header `Location: /assets/<id>`. |
 | Content type | `POST /assets` needs a `Content-Type` whose media type (before any `;`, trimmed) is `application/json`, case-insensitive. Otherwise `415 UNSUPPORTED_MEDIA_TYPE`. This is checked before the body is read. Do **not** use `req.is()` for this, because it returns `null` when there is no body. |
 | Body size | More than 10 kb (10240 bytes) → `413 PAYLOAD_TOO_LARGE`. |
-| Body shape | Malformed JSON, or a JSON value that is not an object → `400 VALIDATION_ERROR` with detail `field: "body"`. An empty body with a JSON content type is treated as `{}`. |
+| Body shape | Malformed JSON, or a JSON value that is not an object → `400 VALIDATION_ERROR` with detail `field: "body"`. An empty body with a JSON content type, or a request with no body at all, is treated as `{}`. A body that cannot be read (for example because the client aborts the request before the body is complete) → `400 VALIDATION_ERROR` with detail `field: "body"`. An unsupported `Content-Encoding` (for example `compress`) or charset → `415 UNSUPPORTED_MEDIA_TYPE`. |
 | Wrong method | `405 METHOD_NOT_ALLOWED` with the header `Allow: GET, POST` for `/assets`, and `Allow: GET` for `/assets/{id}` and `/ping`. |
 | Unknown path | `404 NOT_FOUND`. |
 | Unexpected failure | `500 INTERNAL_ERROR` with the message `Internal server error`. Never send stack traces or internal messages. |
-| Error body | Always `{"error": {"code", "message", "details"?}}`. `details` (an array of `{field, issue}`, at least one) appears on `VALIDATION_ERROR` and on nothing else. `message` and `issue` are human-readable text; the wording is up to you. |
+| Error body | Always `{"error": {"code", "message", "details"?}}`. `details` (an array of `{field, issue}`, at least one) appears on `VALIDATION_ERROR` and on nothing else. `message` and `issue` texts are fixed by §4.7. |
 | Health | `GET /ping` → `200 {"status":"ok"}`. Liveness only. |
 | CORS | `cors({ origin: CORS_ORIGIN })`: that origin only. |
 | Security headers | `helmet()` defaults, with `X-Powered-By` disabled. |
@@ -112,12 +135,12 @@ Nothing else is logged: no startup banner and no debug output.
 |---|---|
 | Language | TypeScript (strict), ES modules everywhere. |
 | Libraries | Express 5, Zod 4, helmet, cors; React 19 + Vite 7; axios; Vitest 4 + Supertest; React Testing Library + MSW 2; Ajv for contract checks. |
-| Versions | Exact pins only, each published at least 14 days before it was pinned. Exact, known-safe versions avoid newly published compromised releases, a risk that is more common now that agents install packages. The lockfile is created during the build, so transitive versions can drift over time. This is a known limitation. |
+| Versions | Exact pins only. The pins were chosen from releases that had been public for at least 14 days; you do not need to check this. Exact, known-safe versions avoid newly published compromised releases, a risk that is more common now that agents install packages. The first install uses `npm install --ignore-scripts --before=2026-10-01T00:00:00Z`, which resolves every package, including transitive ones, to versions published before that date. Every build therefore gets the same dependency tree, whenever it runs. The resulting `package-lock.json` is committed, and later installs use `npm ci --ignore-scripts`. |
 | Install scripts | Disabled (`--ignore-scripts`) everywhere, to shrink the supply-chain attack surface. |
 | Test-driven development | Every behaviour starts as a failing test. This includes the contract tests, which you write yourself from `contract/openapi.yaml` before the code they check. |
 | Contract tests | `contract/contract-helper.ts` validates bodies against `contract/openapi.yaml`. Every backend HTTP test and every frontend mock response goes through it. |
 | Backend coverage | 100% lines, branches, functions and statements. `backend/src/server.ts` is the only exclusion. |
-| Frontend tests | Behavioural tests for the form, the list and filters, and API logging. No coverage threshold. |
+| Frontend tests | Behavioural tests for the form, the list and filters, and API logging, including the titled tests in Phase 3, §3.3. No coverage threshold. |
 | Validation | The server is the single source of truth. The frontend does not repeat the rules and has no `required` attributes; it shows the server's `details`. |
 
 ### 4.6 Not included in this build
@@ -131,6 +154,46 @@ These would be added for a production service. They are deliberately left out he
 | Authentication and authorisation | Required before any real deployment. |
 | Deployment packaging | Containers and a deployment pipeline, decided separately. |
 
+### 4.7 Error text (exact)
+
+Use these texts character for character.
+
+Messages, by error code:
+
+| Code | `message` |
+|---|---|
+| `VALIDATION_ERROR` | `Request is invalid` |
+| `NOT_FOUND` | `Resource not found` |
+| `METHOD_NOT_ALLOWED` | `Method not allowed` |
+| `CONFLICT` | `An asset with this ISBN already exists` |
+| `PAYLOAD_TOO_LARGE` | `Request body must be 10 kb or smaller` |
+| `UNSUPPORTED_MEDIA_TYPE` | `Content-Type must be application/json` |
+| `INTERNAL_ERROR` | `Internal server error` |
+
+Issues, by rule. Each row gives the detail's `field` and `issue`:
+
+| Rule | `field` | `issue` |
+|---|---|---|
+| `title` or `author` is missing or not a string | `title` / `author` | `is required and must be a string` |
+| `title` is empty or over 200 characters after trimming | `title` | `must be 1-200 characters` |
+| `author` is empty or over 100 characters after trimming | `author` | `must be 1-100 characters` |
+| `isbn` is neither a string nor `null`, is empty, or fails the format or checksum after normalising | `isbn` | `must be a valid ISBN-10 or ISBN-13` |
+| `status` is not one of the values (body or query, including an empty query value) | `status` | `must be one of available, on_loan, lost` |
+| Unknown body field | its name | `is not allowed` |
+| The parsed body is not an object: `parseNewAsset` receives `null`, an array or a string, for example. Over HTTP, only an array reaches this rule (see the next row) | `body` | `must be a JSON object` |
+| Malformed JSON. This includes a top-level value other than an object or array, such as `null` or `"text"`, which `express.json()` rejects in its default strict mode | `body` | `must be valid JSON` |
+| The body could not be read | `body` | `could not be read` |
+| Unknown query parameter | its name | `is not a supported filter` |
+| Repeated query parameter | its name | `must be given once` |
+| `author` filter is empty or over 100 characters after trimming | `author` | `must be 1-100 characters` |
+| `q` filter is empty or over 200 characters after trimming | `q` | `must be 1-200 characters` |
+
+Rules:
+- Each field gets at most one issue: the first check it fails. For a body field, the type check comes before the length or format check. For a query parameter, the checks run in this order: unknown, then repeated, then the value check.
+- A body that is not an object gets only the `body` issue.
+- Order of `details` for a body: `title`, `author`, `isbn`, `status`, then unknown fields in the order they appear in the input.
+- Order of `details` for a query: `author`, `status`, `q`, then unknown parameters in the order they first appear in the query string.
+
 ## 5. Target layout
 
 ```
@@ -139,7 +202,7 @@ These would be added for a production service. They are deliberately left out he
 ├── .nvmrc  .gitignore  package.json  package-lock.json
 ├── tsconfig.base.json  tsconfig.json  eslint.config.js
 ├── contract/    openapi.yaml  validate-spec.ts  contract-helper.ts  contract-helper.test.ts
-├── scripts/     smoke.ts
+├── scripts/     smoke.ts  check-rules.mjs
 ├── backend/
 │   ├── package.json  tsconfig.json  tsconfig.build.json  vitest.config.ts
 │   ├── src/
@@ -178,7 +241,7 @@ Do not create files outside this layout, except extra test files under `backend/
 - `backend/package.json` and `frontend/package.json`:
   - `"name"` is `"backend"` or `"frontend"`, with `"private": true` and `"type": "module"`;
   - `scripts`, `dependencies` and `devDependencies` exactly as in §6.2 and §6.3.
-  No manifest may have install hooks (`preinstall`, `install`, `postinstall`, `prepare`).
+  No manifest may have install hooks (`preinstall`, `install`, `postinstall`, `prepare`), or a `peerDependencies`, `optionalDependencies`, `bundleDependencies`, `bundledDependencies`, `overrides` or `resolutions` field.
 - `tsconfig.base.json` has these `compilerOptions`:
   - `"target": "ES2023"`, `"lib": ["ES2023"]`;
   - `"module": "ESNext"`, `"moduleResolution": "Bundler"`;
@@ -193,7 +256,8 @@ Do not create files outside this layout, except extra test files under `backend/
   - ignores `**/dist/**`, `**/coverage/**` and `**/node_modules/**`;
   - extends `@eslint/js` recommended and `typescript-eslint` recommended;
   - sets `globals.node` and `globals.browser`;
-  - sets `no-console: "error"` everywhere, turned off only for `backend/src/logger.ts` and `frontend/src/logger.ts`.
+  - sets `no-console: "error"` everywhere, turned off only for `backend/src/logger.ts` and `frontend/src/logger.ts`;
+  - sets `linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: 'error' }`, so comments cannot change the configuration.
   No other rule may be disabled.
 - `backend/vitest.config.ts`:
   - includes `test/**/*.test.ts`, with `restoreMocks: true`;
@@ -213,11 +277,12 @@ Do not create files outside this layout, except extra test files under `backend/
 |---|---|---|
 | root | `typecheck` | `tsc -p tsconfig.json && npm run typecheck --workspaces` |
 | root | `lint` | `eslint .` |
+| root | `check:rules` | `node scripts/check-rules.mjs` |
 | root | `contract:validate` | `tsx contract/validate-spec.ts` |
 | root | `test:contract` | `vitest run --dir contract` |
 | root | `test` | `npm run test:contract && npm run test:coverage -w backend && npm run test -w frontend` |
 | root | `smoke` | `npm run build -w backend && tsx scripts/smoke.ts` |
-| root | `verify` | `npm run typecheck && npm run lint && npm run contract:validate && npm test && npm run build -w frontend && npm run smoke` |
+| root | `verify` | `npm run check:rules && npm run typecheck && npm run lint && npm run contract:validate && npm test && npm run build -w frontend && npm run smoke` |
 | backend | `dev` | `tsx watch src/server.ts` |
 | backend | `build` | `tsc -p tsconfig.build.json` |
 | backend | `start` | `node dist/server.js` |
@@ -271,6 +336,27 @@ Do not create files outside this layout, except extra test files under `backend/
 | frontend | devDependencies | `vite` | `7.3.6` |
 <!-- DEPENDENCIES-END -->
 
+### 6.4 Rule check script (`scripts/check-rules.mjs`)
+
+Write `scripts/check-rules.mjs` in Phase 1. It is plain Node.js (ES module) and imports nothing except Node built-ins (`node:fs`, `node:path` and so on). It writes each problem as one line with `process.stderr.write` (never `console`). It exits 1 if it found any problem and 0 otherwise. It reads files relative to the repository root, its working directory under `npm run check:rules`.
+
+It checks:
+1. **Manifests.** It reads the §6.2 and §6.3 tables from `instructions.md`: the rows between the `SCRIPTS-BEGIN` and `SCRIPTS-END` HTML comments, and between the `DEPENDENCIES-BEGIN` and `DEPENDENCIES-END` HTML comments. For each of `package.json`, `backend/package.json` and `frontend/package.json`:
+   - `dependencies` and `devDependencies` equal that workspace's table rows exactly: the same package names, the same version strings, and no extras. A section with no rows must be absent or empty.
+   - `scripts` equals that workspace's table rows exactly, with no extras.
+   - There is no `peerDependencies`, `optionalDependencies`, `bundleDependencies`, `bundledDependencies`, `overrides` or `resolutions` field.
+   - There is no `preinstall`, `install`, `postinstall` or `prepare` script.
+2. **Coverage thresholds.** `backend/vitest.config.ts` contains `lines: 100`, `branches: 100`, `functions: 100` and `statements: 100`.
+3. **Suppressions.** It scans the `.ts`, `.tsx`, `.js` and `.mjs` files under `backend/src`, `backend/test`, `frontend/src`, `contract` and `scripts`. It skips folders that do not exist yet, any `node_modules`, `dist` or `coverage` folder, and `scripts/check-rules.mjs` itself. A problem is any line containing:
+   - `eslint-disable`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`;
+   - a test modifier `.skip`, `.skipIf`, `.runIf`, `.only`, `.todo` or `.fails` on `it`, `test`, `describe` or `suite`, including chained forms such as `it.concurrent.skip`;
+   - an `istanbul ignore`, `v8 ignore` or `c8 ignore` comment;
+   - `console.` in a file under `backend/src` or `frontend/src` that is not a test file (`*.test.ts`, `*.test.tsx` or under `frontend/src/test/`) and is not `backend/src/logger.ts` or `frontend/src/logger.ts`.
+4. **Frontend test titles.** If `frontend/src` exists, every test title listed in §3.3 appears, as the exact title string, in at least one `frontend/src/**/*.test.ts` or `*.test.tsx` file. The script holds the 13 titles as a constant.
+5. **Report files**, only when run as `node scripts/check-rules.mjs --report`:
+   - `README.md` has the nine `## ` headings listed in Phase 4 step 1, with exactly those texts;
+   - `BUILD_REPORT.md` exists, every phase row (`0 Preflight` to `4 Verify`) in its "Phase results" table has a non-empty Result, and every `## ` section has some text before the next heading.
+
 ## 7. Phases
 
 ### Phase 0: Preflight
@@ -285,13 +371,13 @@ Commit: `phase 0: preflight`.
 ### Phase 1: Scaffold
 
 1. Copy the contract from Appendix A to `contract/openapi.yaml`, byte-for-byte. Take every line after the line consisting of four backticks followed by `yaml`, up to but not including the next line consisting of exactly four backticks, and keep the final newline. The gate checks its SHA-256. If the check fails, copy it again rather than editing it.
-2. Create every file in §6.1, with `scripts` and dependencies exactly as in §6.2 and §6.3.
-3. Run `npm install --ignore-scripts`. This creates `package-lock.json`.
+2. Create every file in §6.1, with `scripts` and dependencies exactly as in §6.2 and §6.3, and write `scripts/check-rules.mjs` (§6.4).
+3. Run `npm install --ignore-scripts --before=2026-10-01T00:00:00Z`. This creates `package-lock.json`. `--before` resolves every package, including transitive ones, to versions published before that date, so every build gets the same dependency tree regardless of when it runs. Use this exact command for any later `npm install` too.
 
 **Gate:**
 
 ```sh
-node -e "const {createHash}=require('node:crypto');const {readFileSync}=require('node:fs');process.exit(createHash('sha256').update(readFileSync('contract/openapi.yaml')).digest('hex')==='76c4422708ccb35d408e700e14f774031a979a92d6cc018858ee15e3d93bef9f'?0:1)" && npm run contract:validate && npx tsc -p tsconfig.json && npx eslint .
+node -e "const {createHash}=require('node:crypto');const {readFileSync}=require('node:fs');process.exit(createHash('sha256').update(readFileSync('contract/openapi.yaml')).digest('hex')==='76c4422708ccb35d408e700e14f774031a979a92d6cc018858ee15e3d93bef9f'?0:1)" && npm run contract:validate && npm exec --no -- tsc -p tsconfig.json && npm run lint && npm run check:rules
 ```
 
 Commit: `phase 1: scaffold`.
@@ -351,7 +437,7 @@ export interface FieldIssue { field: string; issue: string }
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; issues: FieldIssue[] };
 export function normaliseIsbn(raw: string): string;
 export function isValidIsbn(normalised: string): boolean;
-export function parseNewAsset(body: unknown): ParseResult<NewAsset>;                          // uses Zod; never throws
+export function parseNewAsset(body: unknown): ParseResult<NewAsset>;                          // uses Zod; never throws; undefined is treated exactly like {}
 export function parseAssetFilter(query: Record<string, unknown>): ParseResult<AssetFilter>;  // never throws
 
 // backend/src/repo/asset-repository.ts
@@ -400,14 +486,18 @@ runs on Node's ES module loader. Tests in `backend/test/http/` import the helper
 2. `requestLog(logger)`: notes the start time; on the response's `finish` event, calls `logger.httpResponse` with the method, `req.originalUrl.split('?')[0]`, the status and the elapsed milliseconds.
 3. `helmet()`.
 4. `cors({ origin: corsOrigin })`.
-5. Routes from `routes/ping.ts` and `routes/assets.ts`, using `router.route(path)`. Each route ends with `.all(methodNotAllowed('<Allow value>'))`. The `POST /assets` chain is `requireJson` → `express.json({ limit: '10kb' })` → handler. The handler passes `req.body ?? {}` to `parseNewAsset`, because Express leaves `req.body` undefined when a request has no body at all.
+5. Routes from `routes/ping.ts` and `routes/assets.ts`, using `router.route(path)`. Each route ends with `.all(methodNotAllowed('<Allow value>'))`. The `POST /assets` chain is `requireJson` → `express.json({ limit: '10kb' })` → handler. The handler passes `req.body` directly to `parseNewAsset`. Express leaves `req.body` undefined when a request has no body at all, and `parseNewAsset(undefined)` treats `undefined` exactly like `{}`.
 6. `notFound` → `404 NOT_FOUND`.
-7. `errorHandler`, mapping errors as follows:
-   - body-parser `type === 'entity.too.large'` → 413;
-   - `'entity.parse.failed'` → 400 with detail `{ field: 'body' }`;
-   - `'encoding.unsupported'` or `'charset.unsupported'` → 415;
+7. `errorHandler`, mapping errors as follows, checked in this order (messages and issues from §4.7):
    - `HttpError` → its status, code and details;
+   - body-parser `type === 'entity.too.large'` → 413 `PAYLOAD_TOO_LARGE`;
+   - `type === 'encoding.unsupported'` or `'charset.unsupported'` → 415 `UNSUPPORTED_MEDIA_TYPE`;
+   - `type === 'entity.parse.failed'` → 400 `VALIDATION_ERROR`, detail `{ field: 'body', issue: 'must be valid JSON' }`;
+   - a `URIError` (Express raises one with `status` 400 when a path parameter has malformed percent-encoding, for example `/assets/%E0%A4%A`) → 404 `NOT_FOUND`;
+   - any other error that has a numeric `status` from 400 to 499 and `expose === true` (other body-parser errors, such as `request.size.invalid` or `request.aborted`) → 400 `VALIDATION_ERROR`, detail `{ field: 'body', issue: 'could not be read' }`;
    - anything else → `logger.error(err)`, then `500 INTERNAL_ERROR`.
+
+   None of the 4xx mappings is logged as an `error`.
 
 Express 5 forwards rejected promises from async handlers to the error handler, so no wrappers are needed.
 
@@ -433,12 +523,14 @@ Domain (`test/domain/`):
    - an invalid or non-string `isbn`;
    - an invalid `status`;
    - each unknown key (field = the key);
-   - a body that is `null`, an array, a string or `undefined` (field `body`).
-   Several problems produce several issues.
+   - a body that is `null`, an array or a string (field `body`);
+   - `undefined`, which gives the same issues as `{}` (fields `title` and `author`);
+   - a `title` of 100 `📚` is accepted and one of 101 is too long (§4.1).
+   Every issue text is exactly as in §4.7. Several problems produce one issue per field, in the §4.7 order.
 5. `parseAssetFilter`:
    - `{}` → `{}`;
    - each valid filter is trimmed and returned;
-   - errors for: an unknown key, a repeated key (array value), a value blank after trimming, `author` > 100, `q` > 200, an invalid `status`.
+   - errors for: an unknown key, a repeated key (array value), a value blank after trimming, `author` > 100, `q` > 200, an invalid `status`, with the §4.7 issue texts and order.
 
 Repository (`test/repo/`):
 6. `add`, then `findById` / `findByIsbn`; a missing value gives `undefined`.
@@ -455,14 +547,14 @@ Logger (`test/logger.test.ts`; spy with `vi.spyOn(console, 'log')` and `vi.spyOn
 HTTP (`test/http/`, Supertest against `makeTestApp().app`):
 10. `GET /ping` → 200 `{ status: 'ok' }`. `POST /ping` → 405 with `Allow: GET`.
 11. A valid `POST /assets` → 201. The body equals the stored asset with the fixed id and `createdAt`, plus `Location: /assets/<id>`.
-12. `POST /assets` validation errors → 400 with details (one case per rule; the domain tests cover the rest).
+12. `POST /assets` validation errors → 400 with message `Request is invalid` and the §4.7 issue texts (one case per rule; the domain tests cover the rest).
 13. A duplicate ISBN, including one formatted differently, → 409 `CONFLICT`.
 14. `POST /assets` with `text/plain`, or with no `Content-Type`, → 415.
 15. `POST /assets` responses:
     - malformed JSON → 400 with field `body`;
     - an empty body with a JSON content type → 400 with fields `title` and `author`;
     - a body over 10 kb → 413.
-16. `GET /assets/:id` → 200; an unknown id → 404; `PUT /assets/:id` → 405 with `Allow: GET`.
+16. `GET /assets/:id` → 200; an unknown id → 404; `PUT /assets/:id` → 405 with `Allow: GET`. `GET /assets/%E0%A4%A` → 404 `NOT_FOUND` with no `logs.errors` entry.
 17. `GET /assets`:
     - returns `{ data }` in creation order;
     - covers each filter and combined filters;
@@ -472,21 +564,22 @@ HTTP (`test/http/`, Supertest against `makeTestApp().app`):
 19. When the repository throws (inject one with `makeTestApp({ repo })`), the response is 500 `INTERNAL_ERROR` with the generic message and no stack, and there is exactly one `logs.errors` entry.
 20. Every response logs exactly one `logs.responses` entry with the right status and a `path` without a query string. 4xx responses log nothing to `logs.errors`.
 21. Responses have no `X-Powered-By` and include `X-Content-Type-Options: nosniff` and `Access-Control-Allow-Origin: http://localhost:5173`. A CORS preflight (`OPTIONS /assets` with `Origin` and `Access-Control-Request-Method: POST`) returns 204.
-22. `Content-Type: application/json; charset=latin1` → 415. This covers the charset branch of the error handler.
+22. `Content-Type: application/json; charset=latin1` → 415, and `Content-Encoding: compress` → 415. These cover the charset and encoding branches of the error handler.
+23. The error handler's remaining 4xx branch: in a test, mount the error-handling middleware from `middleware/error-handler.ts` in a small Express app of its own, behind a middleware that calls `next(err)` with an error that has `status: 400`, `expose: true` and `type: 'request.aborted'`. The response is 400 `VALIDATION_ERROR` with detail `{ field: 'body', issue: 'could not be read' }` (check it with `assertMatchesSchema('Error', body)`), and there is no `logs.errors` entry.
 
 #### 2.4 Smoke script
 
 Write `scripts/smoke.ts`. It must:
-1. Start `node backend/dist/server.js` with `PORT=3999`, inheriting stdout and stderr.
+1. Start the server with `spawn(process.execPath, ['backend/dist/server.js'], …)` from `node:child_process`, with `PORT=3999` added to the environment and stdout and stderr inherited.
 2. Wait up to 20 seconds for `GET /ping` to return 200.
 3. `POST /assets` with a valid book and expect 201.
 4. `GET` the returned `Location` path and expect 200 with the same body.
 5. `GET /assets?q=<that title>` and expect the book in `data`.
-6. Stop the server with `SIGTERM`.
+6. Wrap steps 2–5 in `try/finally`. In `finally`, unless the child has already exited, send it `SIGTERM` and wait for its `exit` event for up to 5 seconds; if it has not exited by then, send `SIGKILL` and wait for `exit` again. A failure therefore never leaves a server on port 3999.
 
-It exits 0 on success. On failure it throws, which exits non-zero. It prints nothing of its own.
+It exits 0 on success. On failure it throws (after the `finally` cleanup), which exits non-zero. It prints nothing of its own.
 
-**Gate:** `npm run test:contract && npm run test:coverage -w backend && npm run smoke && npx tsc -p tsconfig.json && npm run typecheck -w backend && npx eslint .`
+**Gate:** `npm run test:contract && npm run test:coverage -w backend && npm run smoke && npm exec --no -- tsc -p tsconfig.json && npm run typecheck -w backend && npm run lint && npm run check:rules`
 Commit: `phase 2: backend`.
 
 ### Phase 3: Frontend
@@ -516,7 +609,7 @@ export function attachLogging(instance: AxiosInstance): AxiosInstance;
 export const http: AxiosInstance; // axios.create({ baseURL: import.meta.env.VITE_API_URL ?? '/api', timeout: 10000 }) + attachLogging
 
 // frontend/src/api/assets.ts
-export function listAssets(filters: AssetFilterValues): Promise<Asset[]>; // GET /assets; filters go in `params`; empty values omitted
+export function listAssets(filters: AssetFilterValues): Promise<Asset[]>; // GET /assets; filters go in `params`; each filter value is trimmed, then omitted if empty
 export function createAsset(input: NewAsset): Promise<Asset>;        // POST /assets; an empty isbn is omitted
 // Both turn axios errors into ApiError: the HTTP status and the body's error.code/message/details,
 // or status null and code 'NETWORK_ERROR' when there was no response.
@@ -539,10 +632,11 @@ export function useDebouncedValue<T>(value: T, delayMs: number): T;
 - **Form** (`AssetForm`, section heading `<h2>` **Register a book**):
   - Labelled inputs **Title**, **Author** and **ISBN (optional)**, and a select **Status** with options **Available** (default), **On loan** and **Lost**.
   - A submit button **Register book**, disabled while submitting. No `required` attributes and no client-side validation.
-  - **201:** clear the fields, show `role="status"` text **Book registered.**, and call `onCreated(asset)`.
-  - **400:** show each detail's `issue` under its input, in an element with id `<field>-error` referenced by the input's `aria-describedby`, and set `aria-invalid="true"` on the input. Details for `body` or unknown fields go in the general alert.
-  - **409:** show **A book with this ISBN is already registered.** under the ISBN input, using the same mechanism.
-  - **Anything else:** `role="alert"` with **Could not register the book. Please try again.**
+  - **On submit:** first clear any previous field errors, the general alert and **Book registered.**
+  - **201:** reset **Title**, **Author** and **ISBN (optional)** to empty and **Status** to **Available**, show `role="status"` text **Book registered.**, and call `onCreated(asset)`.
+  - **400:** details for `title`, `author`, `isbn` and `status` appear inline. Show the detail's `issue` text as-is (the server sends at most one issue per field, §4.7) under its input or select, in an element with id `<field>-error` (`title-error`, `author-error`, `isbn-error`, `status-error`) referenced by that control's `aria-describedby`, and set `aria-invalid="true"` on the control. If any detail has field `body` or another field, also show the general alert: `role="alert"` with **Could not register the book. Please try again.**
+  - **409:** show **A book with this ISBN is already registered.** under the ISBN input, using the same mechanism (`isbn-error`).
+  - **Anything else:** the general alert, `role="alert"` with **Could not register the book. Please try again.**
 - **Filters** (`AssetFilters`), under `<h2>` **Books**:
   - Labelled input **Filter by author**, select **Filter by status** (options **Any status** with value `""`, then the three statuses), and input **Search titles**.
   - `App` debounces author and title search by 300 ms with `useDebouncedValue`; the status filter applies immediately.
@@ -558,43 +652,46 @@ export function useDebouncedValue<T>(value: T, delayMs: number): T;
 
 - `src/test/server.ts` exports `server` (`setupServer()` from `msw/node`) and `contractJson(method, pathTemplate, status, body)`. That function calls `assertMatchesContract` (from `../../../contract/contract-helper.js`) and then returns `HttpResponse.json(body, { status })`. Every mock response goes through it.
 - `src/test/setup.ts` imports `@testing-library/jest-dom/vitest`, starts the server with `onUnhandledRequest: 'error'`, and after each test resets handlers and calls `cleanup()`.
+- Each test file below contains at least these tests, with exactly these titles (`npm run check:rules` looks for each one):
 - `client.test.ts`:
-  - a 200 response logs `http_response` with a `url` that has no query string;
-  - a 400 response logs `http_response` and rejects;
-  - a network error (`HttpResponse.error()`) logs `error` and no `http_response`.
+  - `'logs http_response without the query string'`: a 200 response logs `http_response` with a `url` that has no query string;
+  - `'logs http_response for an error response and rejects'`: a 400 response logs `http_response` and rejects;
+  - `'logs an error and no http_response on network failure'`: a network error (`HttpResponse.error()`) logs `error` and no `http_response`.
 - `AssetForm.test.tsx`:
-  - the happy path posts exactly `{ title, author, status: 'available' }`, with `isbn` omitted when empty, shows **Book registered.** and calls `onCreated`;
-  - 400 details appear next to their fields with `aria-invalid`;
-  - 409 shows the ISBN message;
-  - 500 shows the general alert.
+  - `'registers a book and omits an empty ISBN'`: the happy path posts exactly `{ title, author, status: 'available' }`, with `isbn` omitted when empty, shows **Book registered.** and calls `onCreated`;
+  - `'shows server validation issues next to their fields'`: 400 details appear next to their fields with `aria-invalid`;
+  - `'shows the duplicate ISBN message'`: 409 shows the ISBN message;
+  - `'shows the general alert for other errors'`: 500 shows the general alert.
 - `App.test.tsx`:
-  - rows render from `GET /assets`;
-  - typing in **Filter by author** sends `author=` after the debounce;
-  - changing **Filter by status** sends `status=`;
-  - the empty state and the error state appear;
-  - registering a book refreshes the list.
+  - `'renders books from the API'`: rows render from `GET /assets`;
+  - `'filters by author after the debounce'`: typing in **Filter by author** sends `author=` after the debounce;
+  - `'filters by status immediately'`: changing **Filter by status** sends `status=`;
+  - `'shows the empty state'`: the empty state appears;
+  - `'shows the load error'`: the error state appears;
+  - `'refreshes the list after registering a book'`: registering a book refreshes the list.
 - Where tests trigger logging, spy with `const info = vi.spyOn(console, 'info').mockImplementation(() => {})` (likewise for `error`) and assert on the returned spy. Never reference `console.*` directly in tests: ESLint's `no-console` rule applies to tests too.
 
-**Gate:** `npm run test -w frontend && npm run build -w frontend && npm run typecheck && npx eslint .`
+**Gate:** `npm run test -w frontend && npm run build -w frontend && npm run typecheck && npm run lint && npm run check:rules`
 Commit: `phase 3: frontend`.
 
 ### Phase 4: Verify and report
 
-1. Write `README.md` with these sections:
-   - **Overview**
-   - **Requirements**
-   - **Quick start** (`npm ci --ignore-scripts`, `npm run dev -w backend`, `npm run dev -w frontend`, then open http://localhost:5173)
-   - **Configuration** (the table in §4.4)
-   - **API** (one line per endpoint; point to `contract/openapi.yaml`)
-   - **Testing** (`npm run verify`)
-   - **Observability** (the two log events)
-   - **Decisions** (point to §4 of `instructions.md`)
-   - **Not included** (the table in §4.6)
-2. Run the gate.
+1. Write `README.md` with these nine sections, each a `## ` heading with exactly this text:
+   - `## Overview`
+   - `## Requirements`
+   - `## Quick start` (`npm ci --ignore-scripts`, `npm run dev -w backend`, `npm run dev -w frontend`, then open http://localhost:5173)
+   - `## Configuration` (the table in §4.4)
+   - `## API` (one line per endpoint; point to `contract/openapi.yaml`)
+   - `## Testing` (`npm run verify`)
+   - `## Observability` (the two log events)
+   - `## Decisions` (point to §4 of `instructions.md`)
+   - `## Not included` (the table in §4.6)
+2. Run `npm run verify` and fix anything it reports.
 3. Run `npm audit --audit-level=high` and record its summary in `BUILD_REPORT.md` under "npm audit". A high or critical advisory does not fail the build (you may not change versions); list each one under "Deviations from instructions" with the package and advisory id.
-4. Fill in `BUILD_REPORT.md` from Appendix B. Every phase gets **PASS** or **FAIL**, with the number of attempts.
+4. Fill in `BUILD_REPORT.md` from Appendix B. Every phase gets **PASS** or **FAIL**, with the number of attempts. Phase 4's result is that of the gate below; record **PASS** when `npm run verify` passed in step 2, and correct it if the gate then fails.
+5. Run the gate last. If it fails, fix the cause, update `BUILD_REPORT.md` (each gate run counts as an attempt) and run it again.
 
-**Gate:** `npm run verify`
+**Gate:** `npm run verify && node scripts/check-rules.mjs --report`
 Commit: `phase 4: verify and report`.
 
 ## Appendix A: `contract/openapi.yaml`
@@ -880,10 +977,10 @@ Copy this into `BUILD_REPORT.md` and fill in every field.
 | Phase | Gate | Result (PASS / FAIL) | Attempts | Notes |
 |---|---|---|---|---|
 | 0 Preflight | Node version check | | | |
-| 1 Scaffold | contract hash, contract:validate, tsc, eslint | | | |
-| 2 Backend | test:contract, test:coverage, smoke, typecheck, eslint | | | |
-| 3 Frontend | frontend test, build, typecheck, eslint | | | |
-| 4 Verify | npm run verify | | | |
+| 1 Scaffold | contract hash, contract:validate, tsc, lint, check:rules | | | |
+| 2 Backend | test:contract, test:coverage, smoke, tsc, typecheck, lint, check:rules | | | |
+| 3 Frontend | frontend test, build, typecheck, lint, check:rules | | | |
+| 4 Verify | npm run verify, check-rules --report | | | |
 
 ## Backend coverage
 
