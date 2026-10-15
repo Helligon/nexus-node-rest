@@ -81,6 +81,7 @@ describe('POST /assets: validation', () => {
     ['an ISBN with the wrong length', { title: 'T', author: 'A', isbn: '12345' }, 'isbn'],
     ['an empty-string ISBN', { title: 'T', author: 'A', isbn: '' }, 'isbn'],
     ['a non-string ISBN', { title: 'T', author: 'A', isbn: 9780306406157 }, 'isbn'],
+    ['an ISBN containing a tab', { title: 'T', author: 'A', isbn: '978\t0306406157' }, 'isbn'],
     ['an unknown status', { title: 'T', author: 'A', status: 'borrowed' }, 'status'],
     ['an unknown field', { title: 'T', author: 'A', colour: 'red' }, 'colour'],
     ['a JSON array body', [], 'body'],

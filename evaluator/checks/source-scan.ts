@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listFiles } from './files.js';
 
-const ROOTS = ['backend/src', 'backend/test', 'frontend/src', 'contract', 'scripts'];
+const ROOTS = ['backend/src', 'backend/test', 'frontend/src', 'contract', 'conformance', 'scripts'];
 const SOURCE = /\.(ts|tsx|js|mjs|cjs)$/;
 const LOGGERS = new Set(['backend/src/logger.ts', 'frontend/src/logger.ts']);
 // instructions §6.4: the build's own rule checker is the one file allowed to hold the banned tokens as patterns.

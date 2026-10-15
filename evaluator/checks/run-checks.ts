@@ -42,6 +42,7 @@ const GATES: Array<[string, string]> = [
   ['contract-validate', 'npm run contract:validate'],
   ['contract-tests', 'npm run test:contract'],
   ['backend-coverage', 'rm -rf backend/coverage && npm run test:coverage -w backend'],
+  ['conformance', 'npm run test:conformance'],
   ['frontend-tests', 'npm run test -w frontend'],
   ['frontend-build', 'npm run build -w frontend'],
   ['smoke', 'npm run smoke'],

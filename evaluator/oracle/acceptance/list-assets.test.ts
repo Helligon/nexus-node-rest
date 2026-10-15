@@ -82,6 +82,7 @@ describe('GET /assets', () => {
     ['a repeated parameter', '?author=a&author=b', 'author'],
     ['an over-long q', `?q=${'a'.repeat(201)}`, 'q'],
     ['an over-long author', `?author=${'a'.repeat(101)}`, 'author'],
+    ['an empty parameter name', '?=x', 'query'],
   ])('rejects %s with 400', async (_name, search, field) => {
     const res = await api('GET', `/assets${search}`);
     expectError(res, 400, 'VALIDATION_ERROR');

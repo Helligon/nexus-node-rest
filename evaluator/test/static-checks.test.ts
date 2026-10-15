@@ -51,6 +51,11 @@ describe('scanSources', () => {
     ]);
   });
 
+  it('scans the conformance suite (instructions §5, §6.4)', () => {
+    const dir = tree({ 'conformance/ping.test.ts': 'it.only("x", () => {});\n' });
+    expect(scanSources(dir).findings).toEqual(['conformance/ping.test.ts:1: skipped or focused test']);
+  });
+
   it('skips scripts/check-rules.mjs, which instructions §6.4 lets hold the banned tokens as patterns', () => {
     const dir = tree({
       'scripts/check-rules.mjs': "const BANNED = [/eslint-disable/, /@ts-ignore/, /\\bit\\.skip\\b/, /v8 ignore/];\n",

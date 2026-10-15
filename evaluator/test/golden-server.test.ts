@@ -83,6 +83,24 @@ describe('golden server error texts (instructions §4.7)', () => {
     expect((await call('POST', '/assets', '[]')).body).toMatchObject({ error: { details: [{ field: 'body', issue: 'must be a JSON object' }] } });
   });
 
+  it('reports an empty body key as field "body" and an empty query key as field "query" (§4.7)', async () => {
+    expect((await call('POST', '/assets', JSON.stringify({ title: 'T', author: 'A', '': 1 }))).body).toEqual({
+      error: { code: 'VALIDATION_ERROR', message: 'Request is invalid', details: [{ field: 'body', issue: 'is not allowed' }] },
+    });
+    expect((await call('GET', '/assets?=x')).body).toEqual({
+      error: { code: 'VALIDATION_ERROR', message: 'Request is invalid', details: [{ field: 'query', issue: 'is not a supported filter' }] },
+    });
+  });
+
+  it('removes only U+0020 spaces and U+002D hyphens from an ISBN (§4.1)', async () => {
+    expect((await call('POST', '/assets', JSON.stringify({ title: 'T', author: 'A', isbn: ' 0-306-40615-2 ' }))).status).toBe(201);
+    for (const isbn of ['978\t0306406157', '978\u00a00306406157', '978\u20130306406157', '978\n0306406157']) {
+      expect((await call('POST', '/assets', JSON.stringify({ title: 'T', author: 'A', isbn }))).body).toEqual({
+        error: { code: 'VALIDATION_ERROR', message: 'Request is invalid', details: [{ field: 'isbn', issue: 'must be a valid ISBN-10 or ISBN-13' }] },
+      });
+    }
+  });
+
   it('counts characters as UTF-16 code units after trimming', async () => {
     expect((await call('POST', '/assets', JSON.stringify({ title: '📚'.repeat(100), author: 'A' }))).status).toBe(201);
     expect((await call('POST', '/assets', JSON.stringify({ title: '📚'.repeat(101), author: 'A' }))).status).toBe(400);

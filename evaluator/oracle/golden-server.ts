@@ -39,7 +39,7 @@ const BODY_LIMIT = 10 * 1024;
 const INVALID = 'Request is invalid';
 
 export function normaliseIsbn(raw: string): string {
-  return raw.replace(/[\s-]/g, '').toUpperCase();
+  return raw.replace(/[ -]/g, '').toUpperCase();
 }
 
 export function isValidIsbn(isbn: string): boolean {
@@ -118,7 +118,7 @@ function validateNewAsset(body: unknown): { value?: Omit<Asset, 'id' | 'createdA
     }
   }
   for (const key of Object.keys(input)) {
-    if (!ASSET_FIELDS.includes(key)) issues.push({ field: key, issue: 'is not allowed' });
+    if (!ASSET_FIELDS.includes(key)) issues.push({ field: key === '' ? 'body' : key, issue: 'is not allowed' });
   }
   return issues.length > 0 ? { issues } : { value: { title, author, isbn, status }, issues };
 }
@@ -145,7 +145,7 @@ function parseFilter(params: URLSearchParams): { filter?: Filter; issues: Issue[
     else filter[key as 'author' | 'q'] = value;
   }
   for (const key of keys) {
-    if (!FILTER_FIELDS.includes(key)) issues.push({ field: key, issue: 'is not a supported filter' });
+    if (!FILTER_FIELDS.includes(key)) issues.push({ field: key === '' ? 'query' : key, issue: 'is not a supported filter' });
   }
   return issues.length > 0 ? { issues } : { filter, issues };
 }

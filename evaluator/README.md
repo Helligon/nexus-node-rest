@@ -38,8 +38,8 @@ app; nothing here is ever visible to a builder.
 |---|---|
 | Contract hash | instructions §7 Phase 1, Appendix A |
 | Manifests (exact deps and scripts, no forbidden fields or install hooks) | instructions §2 rule 4, §6.1, §6.2, §6.3 |
-| Source scan (skips `scripts/check-rules.mjs`, which §6.4 allows to hold the banned tokens) | instructions §2 rules 3 and 7, §6.4 |
-| Gates (including `check:rules`) | instructions §6.2 scripts, §6.4, Phase gates |
+| Source scan (includes `conformance/`; skips `scripts/check-rules.mjs`, which §6.4 allows to hold the banned tokens) | instructions §2 rules 3 and 7, §6.4 |
+| Gates (including `check:rules` and the build's own `test:conformance` suite) | instructions §4.5, §6.2 scripts, §6.4, Phase gates |
 | Coverage (report, all files) | instructions §4.5, §6.1 |
 | Acceptance suite | instructions §4 and the contract |
 | Probe vs golden (exact messages, issues and detail order) | instructions §4 (including §4.7) and the contract |
