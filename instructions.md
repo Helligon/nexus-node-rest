@@ -32,16 +32,16 @@ These override any habit or default you have.
 8. **Where this file is silent,** choose the simplest option consistent with the contract and §4. Record every such choice under "Unspecified decisions" in `BUILD_REPORT.md`. There is nobody to ask.
 9. **Commit as you go.** In Phase 2, commit after each checklist item (`backend <n>: <behaviour>`). Commit after every gate (`phase <n>: <name>`).
 
-### 2.1 What not to do
+### What not to do
 
 Each of these mistakes is easy to make. The reference in parentheses points to what to do instead.
 
 - Don't let a malformed URL become a 500. Map a `URIError` to `404 NOT_FOUND` (Phase 2, §2.2).
-- Don't let body-parser errors that are not listed fall through to a 500 (Phase 2, §2.2).
+- Don't let body-parser client (4xx) errors that are not listed fall through to a 500 (Phase 2, §2.2).
 - Don't invent error wording. Use the exact texts in §4.7.
 - Don't count characters any way other than `.length` after `.trim()` (§4.1).
 - Don't silence linters or tests. Inline ESLint configuration is disabled, and `npm run check:rules` searches for suppressions (rule 3, §6.4).
-- Don't hand-edit versions, scripts or coverage thresholds. `npm run check:rules` compares them with §6.2, §6.3 and §6.1.
+- Don't change or add versions, scripts or coverage thresholds. `npm run check:rules` compares them with §6.2, §6.3 and §6.1.
 - Don't skip the frontend tests with the titles listed in Phase 3, §3.3.
 - Don't skip `README.md` or `BUILD_REPORT.md`. `node scripts/check-rules.mjs --report` checks both (Phase 4).
 - Don't run a tool in a way that lets npm download it. Use the npm scripts or `npm exec --no --` (rule 5).
@@ -257,8 +257,9 @@ Do not create files outside this layout, except extra test files under `backend/
   - extends `@eslint/js` recommended and `typescript-eslint` recommended;
   - sets `globals.node` and `globals.browser`;
   - sets `no-console: "error"` everywhere, turned off only for `backend/src/logger.ts` and `frontend/src/logger.ts`;
+  - sets `'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]`, so that unused parameters named with a leading `_` (such as `_req` and `_next` in the four-argument Express error handler) are allowed. This is the only rule option you set besides `no-console`;
   - sets `linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: 'error' }`, so comments cannot change the configuration.
-  No other rule may be disabled.
+  No rule may be disabled or reconfigured beyond these.
 - `backend/vitest.config.ts`:
   - includes `test/**/*.test.ts`, with `restoreMocks: true`;
   - coverage uses provider `v8`, includes `src/**/*.ts` and excludes only `src/server.ts`;
@@ -347,15 +348,16 @@ It checks:
    - There is no `peerDependencies`, `optionalDependencies`, `bundleDependencies`, `bundledDependencies`, `overrides` or `resolutions` field.
    - There is no `preinstall`, `install`, `postinstall` or `prepare` script.
 2. **Coverage thresholds.** `backend/vitest.config.ts` contains `lines: 100`, `branches: 100`, `functions: 100` and `statements: 100`.
-3. **Suppressions.** It scans the `.ts`, `.tsx`, `.js` and `.mjs` files under `backend/src`, `backend/test`, `frontend/src`, `contract` and `scripts`. It skips folders that do not exist yet, any `node_modules`, `dist` or `coverage` folder, and `scripts/check-rules.mjs` itself. A problem is any line containing:
+3. **Suppressions.** It scans the `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files under `backend/src`, `backend/test`, `frontend/src`, `contract` and `scripts`. It skips folders that do not exist yet, any `node_modules`, `dist` or `coverage` folder, and `scripts/check-rules.mjs` itself. A problem is any line containing:
    - `eslint-disable`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`;
    - a test modifier `.skip`, `.skipIf`, `.runIf`, `.only`, `.todo` or `.fails` on `it`, `test`, `describe` or `suite`, including chained forms such as `it.concurrent.skip`;
    - an `istanbul ignore`, `v8 ignore` or `c8 ignore` comment;
    - `console.` in a file under `backend/src` or `frontend/src` that is not a test file (`*.test.ts`, `*.test.tsx` or under `frontend/src/test/`) and is not `backend/src/logger.ts` or `frontend/src/logger.ts`.
-4. **Frontend test titles.** If `frontend/src` exists, every test title listed in §3.3 appears, as the exact title string, in at least one `frontend/src/**/*.test.ts` or `*.test.tsx` file. The script holds the 13 titles as a constant.
+4. **Frontend test titles.** If any `*.test.ts` or `*.test.tsx` file exists under `frontend/src`, every test title listed in §3.3 appears, as the exact title string, in at least one `frontend/src/**/*.test.ts` or `*.test.tsx` file. The script holds the 13 titles as a constant.
 5. **Report files**, only when run as `node scripts/check-rules.mjs --report`:
    - `README.md` has the nine `## ` headings listed in Phase 4 step 1, with exactly those texts;
-   - `BUILD_REPORT.md` exists, every phase row (`0 Preflight` to `4 Verify`) in its "Phase results" table has a non-empty Result, and every `## ` section has some text before the next heading.
+   - `BUILD_REPORT.md` exists, every phase row (`0 Preflight` to `4 Verify`) in its "Phase results" table has a non-empty Result, and every `## ` section has some text before the next heading;
+   - every line of `BUILD_REPORT.md` that starts with `- ` and contains a colon (such as `- Date (UTC):`), and the `Lines / branches / functions / statements:` line, has non-empty text after its first colon. A copied template with only its placeholders fails.
 
 ## 7. Phases
 
@@ -462,6 +464,9 @@ export class HttpError extends Error {
   readonly status: number; readonly code: ErrorCode; readonly details?: FieldIssue[];
 }
 
+// backend/src/middleware/error-handler.ts
+export function errorHandler(logger: Logger): import('express').ErrorRequestHandler; // returns (err, _req, res, _next) => …
+
 // backend/src/app.ts
 export interface AppDeps { repo: AssetRepository; logger: Logger; clock: () => Date; idGen: () => string; corsOrigin: string }
 export function createApp(deps: AppDeps): import('express').Express; // never calls listen
@@ -488,7 +493,7 @@ runs on Node's ES module loader. Tests in `backend/test/http/` import the helper
 4. `cors({ origin: corsOrigin })`.
 5. Routes from `routes/ping.ts` and `routes/assets.ts`, using `router.route(path)`. Each route ends with `.all(methodNotAllowed('<Allow value>'))`. The `POST /assets` chain is `requireJson` → `express.json({ limit: '10kb' })` → handler. The handler passes `req.body` directly to `parseNewAsset`. Express leaves `req.body` undefined when a request has no body at all, and `parseNewAsset(undefined)` treats `undefined` exactly like `{}`.
 6. `notFound` → `404 NOT_FOUND`.
-7. `errorHandler`, mapping errors as follows, checked in this order (messages and issues from §4.7):
+7. `errorHandler(logger)` (from `middleware/error-handler.ts`), mapping errors as follows, checked in this order (messages and issues from §4.7):
    - `HttpError` → its status, code and details;
    - body-parser `type === 'entity.too.large'` → 413 `PAYLOAD_TOO_LARGE`;
    - `type === 'encoding.unsupported'` or `'charset.unsupported'` → 415 `UNSUPPORTED_MEDIA_TYPE`;
@@ -565,7 +570,7 @@ HTTP (`test/http/`, Supertest against `makeTestApp().app`):
 20. Every response logs exactly one `logs.responses` entry with the right status and a `path` without a query string. 4xx responses log nothing to `logs.errors`.
 21. Responses have no `X-Powered-By` and include `X-Content-Type-Options: nosniff` and `Access-Control-Allow-Origin: http://localhost:5173`. A CORS preflight (`OPTIONS /assets` with `Origin` and `Access-Control-Request-Method: POST`) returns 204.
 22. `Content-Type: application/json; charset=latin1` → 415, and `Content-Encoding: compress` → 415. These cover the charset and encoding branches of the error handler.
-23. The error handler's remaining 4xx branch: in a test, mount the error-handling middleware from `middleware/error-handler.ts` in a small Express app of its own, behind a middleware that calls `next(err)` with an error that has `status: 400`, `expose: true` and `type: 'request.aborted'`. The response is 400 `VALIDATION_ERROR` with detail `{ field: 'body', issue: 'could not be read' }` (check it with `assertMatchesSchema('Error', body)`), and there is no `logs.errors` entry.
+23. The error handler's remaining 4xx branch: in a test, mount `errorHandler(logs)` (from `middleware/error-handler.ts`, with `logs` from `makeTestApp()`) in a small Express app of its own, behind a middleware that calls `next(err)` with an error that has `status: 400`, `expose: true` and `type: 'request.aborted'`. The response is 400 `VALIDATION_ERROR` with detail `{ field: 'body', issue: 'could not be read' }` (check it with `assertMatchesSchema('Error', body)`), and there is no `logs.errors` entry.
 
 #### 2.4 Smoke script
 
