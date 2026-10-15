@@ -67,7 +67,7 @@ The original brief was silent on everything below. These decisions are final.
 | List order and shape | Creation order, oldest first. Body `{"data": [...]}`. No pagination. |
 | `GET /assets/{id}` | `200` with the asset. Otherwise `404 NOT_FOUND`, including ids that are not UUIDs. |
 | `POST /assets` success | `201`; the body is the created asset; header `Location: /assets/<id>`. |
-| Content type | `POST /assets` needs a `Content-Type` whose media type (before any `;`) is `application/json`, case-insensitive. Otherwise `415 UNSUPPORTED_MEDIA_TYPE`. This is checked before the body is read. Do **not** use `req.is()` for this, because it returns `null` when there is no body. |
+| Content type | `POST /assets` needs a `Content-Type` whose media type (before any `;`, trimmed) is `application/json`, case-insensitive. Otherwise `415 UNSUPPORTED_MEDIA_TYPE`. This is checked before the body is read. Do **not** use `req.is()` for this, because it returns `null` when there is no body. |
 | Body size | More than 10 kb (10240 bytes) → `413 PAYLOAD_TOO_LARGE`. |
 | Body shape | Malformed JSON, or a JSON value that is not an object → `400 VALIDATION_ERROR` with detail `field: "body"`. An empty body with a JSON content type is treated as `{}`. |
 | Wrong method | `405 METHOD_NOT_ALLOWED` with the header `Allow: GET, POST` for `/assets`, and `Allow: GET` for `/assets/{id}` and `/ping`. |
@@ -217,7 +217,7 @@ Do not create files outside this layout, except extra test files under `backend/
 | root | `test:contract` | `vitest run --dir contract` |
 | root | `test` | `npm run test:contract && npm run test:coverage -w backend && npm run test -w frontend` |
 | root | `smoke` | `npm run build -w backend && tsx scripts/smoke.ts` |
-| root | `verify` | `npm run typecheck && npm run lint && npm run contract:validate && npm test && npm run build -w frontend && npm run smoke && npm audit --audit-level=high` |
+| root | `verify` | `npm run typecheck && npm run lint && npm run contract:validate && npm test && npm run build -w frontend && npm run smoke` |
 | backend | `dev` | `tsx watch src/server.ts` |
 | backend | `build` | `tsc -p tsconfig.build.json` |
 | backend | `start` | `node dist/server.js` |
@@ -284,7 +284,7 @@ Commit: `phase 0: preflight`.
 
 ### Phase 1: Scaffold
 
-1. Copy the contract from Appendix A to `contract/openapi.yaml`, byte-for-byte. Take everything between the opening ````` ````yaml ````` line and the closing ````` ```` ````` line, excluding those two lines, and keep the final newline. The gate checks its SHA-256. If the check fails, copy it again rather than editing it.
+1. Copy the contract from Appendix A to `contract/openapi.yaml`, byte-for-byte. Take every line after the line consisting of four backticks followed by `yaml`, up to but not including the next line consisting of exactly four backticks, and keep the final newline. The gate checks its SHA-256. If the check fails, copy it again rather than editing it.
 2. Create every file in §6.1, with `scripts` and dependencies exactly as in §6.2 and §6.3.
 3. Run `npm install --ignore-scripts`. This creates `package-lock.json`.
 
@@ -400,7 +400,7 @@ runs on Node's ES module loader. Tests in `backend/test/http/` import the helper
 2. `requestLog(logger)`: notes the start time; on the response's `finish` event, calls `logger.httpResponse` with the method, `req.originalUrl.split('?')[0]`, the status and the elapsed milliseconds.
 3. `helmet()`.
 4. `cors({ origin: corsOrigin })`.
-5. Routes from `routes/ping.ts` and `routes/assets.ts`, using `router.route(path)`. Each route ends with `.all(methodNotAllowed('<Allow value>'))`. The `POST /assets` chain is `requireJson` → `express.json({ limit: '10kb' })` → handler.
+5. Routes from `routes/ping.ts` and `routes/assets.ts`, using `router.route(path)`. Each route ends with `.all(methodNotAllowed('<Allow value>'))`. The `POST /assets` chain is `requireJson` → `express.json({ limit: '10kb' })` → handler. The handler passes `req.body ?? {}` to `parseNewAsset`, because Express leaves `req.body` undefined when a request has no body at all.
 6. `notFound` → `404 NOT_FOUND`.
 7. `errorHandler`, mapping errors as follows:
    - body-parser `type === 'entity.too.large'` → 413;
@@ -422,7 +422,7 @@ which returns `{ app, repo, logs }`:
 
 Every HTTP test validates its response body with `assertMatchesContract(method, pathTemplate, status, body)`.
 For an unknown route (404) and for 405 responses, which have no contract operation, it uses
-`assertMatchesSchema('Error', body)` instead.
+`assertMatchesSchema('Error', body)` instead. The CORS preflight in item 21 (204, empty body) is not body-validated.
 
 Domain (`test/domain/`):
 1. `normaliseIsbn` removes spaces and hyphens and upper-cases `x`.
@@ -448,7 +448,7 @@ Repository (`test/repo/`):
    - combines filters with AND;
    - mutating a returned array or asset does not change the store.
 
-Logger (`test/logger.test.ts`, spying on `console.log` and `console.error`):
+Logger (`test/logger.test.ts`; spy with `vi.spyOn(console, 'log')` and `vi.spyOn(console, 'error')` and assert on the returned spies):
 8. `httpResponse` writes exactly one JSON line with `level`, `event`, `method`, `path`, `status` and `durationMs`.
 9. `error` writes `name`, `message` and `stack` for an `Error`, and `NonError` for a thrown non-Error value.
 
@@ -531,7 +531,7 @@ export function useDebouncedValue<T>(value: T, delayMs: number): T;
 - It always re-throws errors.
 
 `main.tsx` renders `<App />` into `#root` and registers `window` listeners for `error` and
-`unhandledrejection` that call `logError`.
+`unhandledrejection` that call `logError(event.error)` and `logError(event.reason)` respectively.
 
 #### 3.2 The page (exact user-visible text)
 
@@ -573,7 +573,7 @@ export function useDebouncedValue<T>(value: T, delayMs: number): T;
   - changing **Filter by status** sends `status=`;
   - the empty state and the error state appear;
   - registering a book refreshes the list.
-- Spy on `console.info` and `console.error` where tests trigger logging, so test output stays clean.
+- Where tests trigger logging, spy with `const info = vi.spyOn(console, 'info').mockImplementation(() => {})` (likewise for `error`) and assert on the returned spy. Never reference `console.*` directly in tests: ESLint's `no-console` rule applies to tests too.
 
 **Gate:** `npm run test -w frontend && npm run build -w frontend && npm run typecheck && npx eslint .`
 Commit: `phase 3: frontend`.
@@ -591,7 +591,8 @@ Commit: `phase 3: frontend`.
    - **Decisions** (point to §4 of `instructions.md`)
    - **Not included** (the table in §4.6)
 2. Run the gate.
-3. Fill in `BUILD_REPORT.md` from Appendix B. Every phase gets **PASS** or **FAIL**, with the number of attempts.
+3. Run `npm audit --audit-level=high` and record its summary in `BUILD_REPORT.md` under "npm audit". A high or critical advisory does not fail the build (you may not change versions); list each one under "Deviations from instructions" with the package and advisory id.
+4. Fill in `BUILD_REPORT.md` from Appendix B. Every phase gets **PASS** or **FAIL**, with the number of attempts.
 
 **Gate:** `npm run verify`
 Commit: `phase 4: verify and report`.

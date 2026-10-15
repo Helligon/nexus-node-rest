@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 const CONTRACT_PATH = 'contract/openapi.yaml';
 
 // instructions.md is for building the app. It must not mention how builds are assessed.
-export const FORBIDDEN_VOCABULARY = /\b(evaluat\w*|scorer|scorecard|scoring|judge\w*|oracle|golden|harness|examiner|grader|grading)\b/i;
+export const FORBIDDEN_VOCABULARY = /\b(evaluat\w*|scor(?:er|ers|ecard|ecards|ing)|judge\w*|oracles?|golden|harness(?:es)?|examiners?|graders?|grading)\b/i;
 
 export function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex');

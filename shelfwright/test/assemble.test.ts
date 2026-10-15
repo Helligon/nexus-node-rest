@@ -54,6 +54,24 @@ describe('the real instructions.md', () => {
     expect(assembled).toMatch(/<!-- SCRIPTS-BEGIN -->[\s\S]+<!-- SCRIPTS-END -->/);
   });
 
+  it('table rows match the declared formats', () => {
+    const section = (begin: string, end: string) =>
+      new RegExp(`<!-- ${begin} -->([\\s\\S]*?)<!-- ${end} -->`).exec(assembled)?.[1] ?? '';
+    const rows = (text: string) =>
+      text.split('\n').filter((line) => line.startsWith('|') && !line.startsWith('| Workspace') && !line.startsWith('|---'));
+    const depRows = rows(section('DEPENDENCIES-BEGIN', 'DEPENDENCIES-END'));
+    const scriptRows = rows(section('SCRIPTS-BEGIN', 'SCRIPTS-END'));
+    expect(depRows.length).toBeGreaterThan(0);
+    expect(scriptRows.length).toBeGreaterThan(0);
+    for (const row of depRows) {
+      expect(row).toMatch(/^\| (root|backend|frontend) \| (dependencies|devDependencies) \| `[^`]+` \| `\d+\.\d+\.\d+` \|$/);
+    }
+    for (const row of scriptRows) {
+      expect(row).toMatch(/^\| (root|backend|frontend) \| `[^`]+` \| `[^`]+` \|$/);
+    }
+    expect(scriptRows.join('\n')).not.toContain('npm audit');
+  });
+
   it('is committed up to date at the repo root', () => {
     expect(read('../../instructions.md')).toBe(assembled);
   });

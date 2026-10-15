@@ -139,7 +139,7 @@ unspecified decisions. This covers the brief's "write it down rather than guessi
   - the contract hash;
   - manifests (dependencies and scripts must match exactly);
   - a source scan for suppressions, focused or skipped tests, and console use outside the loggers;
-  - gates: install, typecheck, lint, contract validate, contract tests, backend coverage, frontend tests, frontend build, smoke and audit;
+  - gates: install, typecheck, lint, contract validate, contract tests, backend coverage, frontend tests, frontend build and smoke (`npm audit` is recorded separately as an advisory result);
   - coverage: every total at 100%, and every `backend/src` file present in the report;
   - the hidden acceptance suite, run against the built server;
   - the 28-step behaviour probe;
