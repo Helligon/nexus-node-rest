@@ -237,6 +237,7 @@ Only two kinds of JSON log line, and nothing else:
 | The agent writes its own contract tests, test-first, from `openapi.yaml`; verbatim content is minimal | Less copied code. The agent must derive tests from a contract, and the hidden suite checks the result. |
 | `instructions.md` contains only build instructions and app decisions | It is the deliverable a stranger's agent receives. Evaluation is our private concern. |
 | `BUILD_REPORT.md` is kept | It records results, deviations and unspecified decisions honestly. |
+| The builder writes its own conformance suite; the evaluator's acceptance suite stays separate and unseen | Deriving black-box HTTP tests from the contract and decisions log is part of the job and proves the server matches them (instructions §4.5, Phase 2 §2.5). Shipping a suite verbatim would let a build pass without understanding the spec, and the hidden suite still checks the result independently. |
 
 Other decisions made during planning: Node 24 LTS; `405` with `Allow` for wrong methods; an empty
 JSON body is treated as `{}`; `error` log lines only for unexpected failures.

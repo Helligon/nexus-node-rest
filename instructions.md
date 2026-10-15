@@ -41,7 +41,8 @@ Each of these mistakes is easy to make. The reference in parentheses points to w
 - Don't invent error wording. Use the exact texts in §4.7.
 - Don't count characters any way other than `.length` after `.trim()` (§4.1).
 - Don't silence linters or tests. Inline ESLint configuration is disabled, and `npm run check:rules` searches for suppressions (rule 3, §6.4).
-- Don't change or add versions, scripts or coverage thresholds. `npm run check:rules` compares them with §6.2, §6.3 and §6.1.
+- Don't change or add versions or scripts. `npm run check:rules` compares them with §6.2 and §6.3.
+- Don't lower coverage or exclude files from it. `npm run check:rules` reads `backend/coverage/coverage-summary.json` and checks the pinned `include`/`exclude` lines in `backend/vitest.config.ts` and `frontend/vite.config.ts` (§6.1, §6.4).
 - Don't skip the frontend tests with the titles listed in Phase 3, §3.3.
 - Don't skip `README.md` or `BUILD_REPORT.md`. `node scripts/check-rules.mjs --report` checks both (Phase 4).
 - Don't run a tool in a way that lets npm download it. Use the npm scripts or `npm exec --no --` (rule 5).
@@ -51,6 +52,11 @@ Each of these mistakes is easy to make. The reference in parentheses points to w
 - Don't let the smoke script leave a server running (Phase 2, §2.4).
 - Don't guess where form errors go (Phase 3, §3.2).
 - Don't send filters that are empty after trimming (Phase 3, §3.1).
+- Don't route OPTIONS yourself; cors answers it.
+- Don't strip tabs, non-breaking spaces or other dashes from an ISBN. Remove only `/[ -]/g` (U+0020 space and U+002D hyphen-minus) (§4.1).
+- Don't report an empty key as `field: ""`. Use `body` or `query` (§4.7).
+- Don't show **Loading…** in place of the table on a reload, let a stale response overwrite a newer one, or abort requests (Phase 3, §3.2).
+- Don't rely only on in-process tests — run the conformance suite against `backend/dist/server.js`.
 
 ## 3. Prerequisites
 
@@ -70,12 +76,12 @@ The original brief was silent on everything below. These decisions are final.
 | What an asset is | A book: `title`, `author`, optional `isbn`, `status`, plus server-set `id` and `createdAt`. | The domain is a library; ISBN gives books a real-world identity. |
 | `title` | Required string. Trimmed. 1–200 characters after trimming (characters as defined below the table). | Reject blank and runaway input. |
 | `author` | Required string. Trimmed. 1–100 characters after trimming (characters as defined below the table). | As above. |
-| `isbn` | Optional; `null` or omitted means "no ISBN". Spaces and hyphens are removed and `x` is upper-cased. It must then be a valid ISBN-10 (9 digits + digit or `X`, mod-11 checksum) or ISBN-13 (13 digits, mod-10 checksum). Stored and returned normalised. An empty string is invalid. | People type ISBNs with hyphens; one canonical form makes uniqueness meaningful. |
+| `isbn` | Optional; `null` or omitted means "no ISBN". Remove characters matching `/[ -]/g` (U+0020 space and U+002D hyphen-minus only), then upper-case `x`. Tabs, non-breaking spaces and other dashes are not removed, so they make the ISBN invalid. It must then be a valid ISBN-10 (9 digits + digit or `X`, mod-11 checksum) or ISBN-13 (13 digits, mod-10 checksum). Stored and returned normalised. An empty string is invalid. | People type ISBNs with hyphens; one canonical form makes uniqueness meaningful. |
 | ISBN uniqueness | No two assets share a normalised ISBN → `409 CONFLICT`. ISBN-10 and ISBN-13 forms of the same book are **not** treated as equal. Assets without an ISBN may share title and author. | Catch double registration; libraries hold copies of items without ISBNs. |
 | `status` | `available` \| `on_loan` \| `lost`; default `available`. Set only at creation. No endpoint changes it. | The brief asks for register and list only. |
 | `id` | UUID v4 from `crypto.randomUUID()`. | Unguessable; no coordination. |
 | `createdAt` | `new Date().toISOString()` at creation (UTC). | |
-| Unknown POST fields | Rejected with `400`; one detail per unknown field, `field` = its name. | Fail loudly; silent dropping hides client bugs. |
+| Unknown POST fields | Rejected with `400`; one detail per unknown field, `field` = its name (`body` for the empty name `""`, §4.7). | Fail loudly; silent dropping hides client bugs. |
 | Persistence | In memory, behind an async `AssetRepository` interface. Data is lost on restart. | Enough for this service. The interface makes a database a one-file change (§4.6). |
 
 Everywhere in this file, a length in "characters" means UTF-16 code units as measured by `String.prototype.length` after `String.prototype.trim()`: the length of `value` is `value.trim().length`. For example, `📚` counts as 2 characters, so a title of 100 `📚` is accepted and a title of 101 is too long.
@@ -95,6 +101,7 @@ Everywhere in this file, a length in "characters" means UTF-16 code units as mea
 | Body shape | Malformed JSON, or a JSON value that is not an object → `400 VALIDATION_ERROR` with detail `field: "body"`. An empty body with a JSON content type, or a request with no body at all, is treated as `{}`. A body that cannot be read (for example because the client aborts the request before the body is complete) → `400 VALIDATION_ERROR` with detail `field: "body"`. An unsupported `Content-Encoding` (for example `compress`) or charset → `415 UNSUPPORTED_MEDIA_TYPE`. |
 | Wrong method | `405 METHOD_NOT_ALLOWED` with the header `Allow: GET, POST` for `/assets`, and `Allow: GET` for `/assets/{id}` and `/ping`. |
 | Unknown path | `404 NOT_FOUND`. |
+| Preflight / OPTIONS | `cors()` answers every `OPTIONS` request with `204` and no body, on any path (including `/ping` and unknown paths). This takes precedence over the 405/404 rows. |
 | Unexpected failure | `500 INTERNAL_ERROR` with the message `Internal server error`. Never send stack traces or internal messages. |
 | Error body | Always `{"error": {"code", "message", "details"?}}`. `details` (an array of `{field, issue}`, at least one) appears on `VALIDATION_ERROR` and on nothing else. `message` and `issue` texts are fixed by §4.7. |
 | Health | `GET /ping` → `200 {"status":"ok"}`. Liveness only. |
@@ -139,6 +146,7 @@ Nothing else is logged: no startup banner and no debug output.
 | Install scripts | Disabled (`--ignore-scripts`) everywhere, to shrink the supply-chain attack surface. |
 | Test-driven development | Every behaviour starts as a failing test. This includes the contract tests, which you write yourself from `contract/openapi.yaml` before the code they check. |
 | Contract tests | `contract/contract-helper.ts` validates bodies against `contract/openapi.yaml`. Every backend HTTP test and every frontend mock response goes through it. |
+| Conformance suite | You write a black-box suite that runs the built server over HTTP and checks every row of §4.2 and every rule in §4.7 (status, headers, exact `message`/`issue`, detail order). It is not provided verbatim: deriving it from the contract and the decisions log is part of the job, and writing it yourself is how you prove the server matches them. Write each case before the code that satisfies it where possible. |
 | Backend coverage | 100% lines, branches, functions and statements. `backend/src/server.ts` is the only exclusion. |
 | Frontend tests | Behavioural tests for the form, the list and filters, and API logging, including the titled tests in Phase 3, §3.3. No coverage threshold. |
 | Validation | The server is the single source of truth. The frontend does not repeat the rules and has no `required` attributes; it shows the server's `details`. |
@@ -179,11 +187,11 @@ Issues, by rule. Each row gives the detail's `field` and `issue`:
 | `author` is empty or over 100 characters after trimming | `author` | `must be 1-100 characters` |
 | `isbn` is neither a string nor `null`, is empty, or fails the format or checksum after normalising | `isbn` | `must be a valid ISBN-10 or ISBN-13` |
 | `status` is not one of the values (body or query, including an empty query value) | `status` | `must be one of available, on_loan, lost` |
-| Unknown body field | its name | `is not allowed` |
+| Unknown body field | its name, or `body` when the name is the empty string `""` | `is not allowed` |
 | The parsed body is not an object: `parseNewAsset` receives `null`, an array or a string, for example. Over HTTP, only an array reaches this rule (see the next row) | `body` | `must be a JSON object` |
 | Malformed JSON. This includes a top-level value other than an object or array, such as `null` or `"text"`, which `express.json()` rejects in its default strict mode | `body` | `must be valid JSON` |
 | The body could not be read | `body` | `could not be read` |
-| Unknown query parameter | its name | `is not a supported filter` |
+| Unknown query parameter | its name, or `query` when the name is the empty string `""` (for example `?=x`) | `is not a supported filter` |
 | Repeated query parameter | its name | `must be given once` |
 | `author` filter is empty or over 100 characters after trimming | `author` | `must be 1-100 characters` |
 | `q` filter is empty or over 200 characters after trimming | `q` | `must be 1-200 characters` |
@@ -191,6 +199,7 @@ Issues, by rule. Each row gives the detail's `field` and `issue`:
 Rules:
 - Each field gets at most one issue: the first check it fails. For a body field, the type check comes before the length or format check. For a query parameter, the checks run in this order: unknown, then repeated, then the value check.
 - A body that is not an object gets only the `body` issue.
+- A body key `""` is reported with `field: "body"` and issue `is not allowed`; a query key `""` (e.g. `?=x`) is reported with `field: "query"` and issue `is not a supported filter`. No detail ever has an empty `field`.
 - Order of `details` for a body: `title`, `author`, `isbn`, `status`, then unknown fields in the order they appear in the input.
 - Order of `details` for a query: `author`, `status`, `q`, then unknown parameters in the order they first appear in the query string.
 
@@ -203,6 +212,7 @@ Rules:
 ├── tsconfig.base.json  tsconfig.json  eslint.config.js
 ├── contract/    openapi.yaml  validate-spec.ts  contract-helper.ts  contract-helper.test.ts
 ├── scripts/     smoke.ts  check-rules.mjs
+├── conformance/  vitest.config.ts  global-setup.ts  *.test.ts
 ├── backend/
 │   ├── package.json  tsconfig.json  tsconfig.build.json  vitest.config.ts
 │   ├── src/
@@ -225,7 +235,7 @@ Rules:
         └── test/setup.ts  server.ts
 ```
 
-Do not create files outside this layout, except extra test files under `backend/test/`, `frontend/src/` or `contract/`.
+Do not create files outside this layout, except extra test files under `backend/test/`, `frontend/src/` or `contract/`. `conformance/` holds as many `*.test.ts` files as you need.
 
 ## 6. Project configuration
 
@@ -248,7 +258,7 @@ Do not create files outside this layout, except extra test files under `backend/
   - `"strict": true`, `"esModuleInterop": true`, `"skipLibCheck": true`;
   - `"isolatedModules": true`, `"resolveJsonModule": true`;
   - `"forceConsistentCasingInFileNames": true`, `"noFallthroughCasesInSwitch": true`.
-- `tsconfig.json` (root): extends `./tsconfig.base.json`; `"noEmit": true`; `"types": ["node"]`; includes `contract/**/*.ts` and `scripts/**/*.ts`.
+- `tsconfig.json` (root): extends `./tsconfig.base.json`; `"noEmit": true`; `"types": ["node"]`; includes `contract/**/*.ts`, `scripts/**/*.ts` and `conformance/**/*.ts`.
 - `backend/tsconfig.json`: extends `../tsconfig.base.json`; `"noEmit": true`; `"types": ["node"]`; includes `src`, `test` and `vitest.config.ts`.
 - `backend/tsconfig.build.json`: extends `./tsconfig.json`; `"noEmit": false`, `"outDir": "dist"`, `"rootDir": "src"`; includes only `src`. `npm run build -w backend` must produce `backend/dist/server.js`.
 - `frontend/tsconfig.json`: extends `../tsconfig.base.json`; `"noEmit": true`, `"jsx": "react-jsx"`; `"lib": ["ES2023", "DOM", "DOM.Iterable"]`; `"types": ["node", "vite/client"]`; includes `src` and `vite.config.ts`.
@@ -264,11 +274,17 @@ Do not create files outside this layout, except extra test files under `backend/
   - includes `test/**/*.test.ts`, with `restoreMocks: true`;
   - coverage uses provider `v8`, includes `src/**/*.ts` and excludes only `src/server.ts`;
   - coverage reporters are `text` and `json-summary`, so `backend/coverage/coverage-summary.json` is written;
-  - thresholds are `lines`, `branches`, `functions` and `statements`, all at `100`.
+  - thresholds are `lines`, `branches`, `functions` and `statements`, all at `100`;
+  - it contains these three lines exactly (leading spaces aside), and no other line containing `include` or `exclude`:
+    - `include: ['test/**/*.test.ts'],`
+    - `include: ['src/**/*.ts'],`
+    - `exclude: ['src/server.ts'],`
 - `frontend/vite.config.ts` uses `defineConfig` from `vitest/config`:
   - plugin `@vitejs/plugin-react`;
   - dev server on port `5173`, proxying `/api` to `http://localhost:3000` with the `/api` prefix removed;
-  - `test` settings: environment `jsdom`, `setupFiles: ['./src/test/setup.ts']`, include `src/**/*.test.{ts,tsx}`, `restoreMocks: true`.
+  - `test` settings: environment `jsdom`, `setupFiles: ['./src/test/setup.ts']`, include `src/**/*.test.{ts,tsx}`, `restoreMocks: true`;
+  - it contains the line `include: ['src/**/*.test.{ts,tsx}'],` exactly (leading spaces aside), and no other line containing `include` or `exclude`.
+- `conformance/vitest.config.ts` uses `defineConfig` from `vitest/config` with `globalSetup: ['./global-setup.ts']`, `root` set to this folder (`fileURLToPath(new URL('.', import.meta.url))`), include `**/*.test.ts` and `fileParallelism: false`.
 - `contract/validate-spec.ts` calls `SwaggerParser.validate()` from `@apidevtools/swagger-parser` on `contract/openapi.yaml`. It resolves that path from `import.meta.url` and prints nothing on success.
 
 ### 6.2 Scripts (exact)
@@ -283,7 +299,8 @@ Do not create files outside this layout, except extra test files under `backend/
 | root | `test:contract` | `vitest run --dir contract` |
 | root | `test` | `npm run test:contract && npm run test:coverage -w backend && npm run test -w frontend` |
 | root | `smoke` | `npm run build -w backend && tsx scripts/smoke.ts` |
-| root | `verify` | `npm run check:rules && npm run typecheck && npm run lint && npm run contract:validate && npm test && npm run build -w frontend && npm run smoke` |
+| root | `test:conformance` | `npm run build -w backend && vitest run --config conformance/vitest.config.ts` |
+| root | `verify` | `npm run check:rules && npm run typecheck && npm run lint && npm run contract:validate && npm test && npm run test:conformance && npm run build -w frontend && npm run smoke` |
 | backend | `dev` | `tsx watch src/server.ts` |
 | backend | `build` | `tsc -p tsconfig.build.json` |
 | backend | `start` | `node dist/server.js` |
@@ -347,13 +364,16 @@ It checks:
    - `scripts` equals that workspace's table rows exactly, with no extras.
    - There is no `peerDependencies`, `optionalDependencies`, `bundleDependencies`, `bundledDependencies`, `overrides` or `resolutions` field.
    - There is no `preinstall`, `install`, `postinstall` or `prepare` script.
-2. **Coverage thresholds.** `backend/vitest.config.ts` contains `lines: 100`, `branches: 100`, `functions: 100` and `statements: 100`.
-3. **Suppressions.** It scans the `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files under `backend/src`, `backend/test`, `frontend/src`, `contract` and `scripts`. It skips folders that do not exist yet, any `node_modules`, `dist` or `coverage` folder, and `scripts/check-rules.mjs` itself. A problem is any line containing:
+2. **Coverage.**
+   - `backend/vitest.config.ts` contains, as whole lines after trimming leading and trailing spaces, `include: ['test/**/*.test.ts'],`, `include: ['src/**/*.ts'],` and `exclude: ['src/server.ts'],`, and no other line containing `include` or `exclude`.
+   - `frontend/vite.config.ts` contains, as a whole line after trimming, `include: ['src/**/*.test.{ts,tsx}'],`, and no other line containing `include` or `exclude`.
+   - Only if `backend/coverage/coverage-summary.json` exists (it does not in Phase 1): it parses the file and requires `total.lines.pct`, `total.branches.pct`, `total.functions.pct` and `total.statements.pct` each `=== 100`, and an entry for every `backend/src/**/*.ts` file except `backend/src/server.ts`. The report's keys are absolute paths: a file has an entry when some key, passed through `fs.realpathSync` and then `path.relative` from the real path of the repository root, equals its path (with `/` separators).
+3. **Suppressions.** It scans the `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files under `backend/src`, `backend/test`, `frontend/src`, `contract`, `conformance` and `scripts`. It skips folders that do not exist yet, any `node_modules`, `dist` or `coverage` folder, and `scripts/check-rules.mjs` itself. A problem is any line containing:
    - `eslint-disable`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`;
    - a test modifier `.skip`, `.skipIf`, `.runIf`, `.only`, `.todo` or `.fails` on `it`, `test`, `describe` or `suite`, including chained forms such as `it.concurrent.skip`;
    - an `istanbul ignore`, `v8 ignore` or `c8 ignore` comment;
    - `console.` in a file under `backend/src` or `frontend/src` that is not a test file (`*.test.ts`, `*.test.tsx` or under `frontend/src/test/`) and is not `backend/src/logger.ts` or `frontend/src/logger.ts`.
-4. **Frontend test titles.** If any `*.test.ts` or `*.test.tsx` file exists under `frontend/src`, every test title listed in §3.3 appears, as the exact title string, in at least one `frontend/src/**/*.test.ts` or `*.test.tsx` file. The script holds the 13 titles as a constant.
+4. **Frontend test titles.** If any `*.test.ts` or `*.test.tsx` file exists under `frontend/src`, every test title listed in §3.3 appears, as the exact title string, in at least one `frontend/src/**/*.test.ts` or `*.test.tsx` file. The script holds the 14 titles as a constant.
 5. **Report files**, only when run as `node scripts/check-rules.mjs --report`:
    - `README.md` has the nine `## ` headings listed in Phase 4 step 1, with exactly those texts;
    - `BUILD_REPORT.md` exists, every phase row (`0 Preflight` to `4 Verify`) in its "Phase results" table has a non-empty Result, and every `## ` section has some text before the next heading;
@@ -520,7 +540,7 @@ For an unknown route (404) and for 405 responses, which have no contract operati
 `assertMatchesSchema('Error', body)` instead. The CORS preflight in item 21 (204, empty body) is not body-validated.
 
 Domain (`test/domain/`):
-1. `normaliseIsbn` removes spaces and hyphens and upper-cases `x`.
+1. `normaliseIsbn` removes only U+0020 spaces and U+002D hyphens (`/[ -]/g`) and upper-cases `x`; a tab or non-breaking space is left in place.
 2. `isValidIsbn` accepts `0306406152`, `080442957X` and `9780306406157`. It rejects a wrong checksum (`0306406153`, `9780306406158`), the wrong length, any letter except a final `X` on ISBN-10, and `X` in an ISBN-13.
 3. `parseNewAsset` on a valid minimal body returns defaults (`isbn: null`, `status: 'available'`) and trimmed strings.
 4. `parseNewAsset` reports the right `field` for:
@@ -584,7 +604,19 @@ Write `scripts/smoke.ts`. It must:
 
 It exits 0 on success. On failure it throws (after the `finally` cleanup), which exits non-zero. It prints nothing of its own.
 
-**Gate:** `npm run test:contract && npm run test:coverage -w backend && npm run smoke && npm exec --no -- tsc -p tsconfig.json && npm run typecheck -w backend && npm run lint && npm run check:rules`
+#### 2.5 Conformance suite
+
+Write the conformance suite (§4.5) in `conformance/`. Run it with `npm run test:conformance`, which builds the backend first.
+- `conformance/vitest.config.ts` is as in §6.1.
+- `conformance/global-setup.ts` starts `node backend/dist/server.js` with `PORT=3997` added to the environment (spawned with `process.execPath`, as in §2.4), waits up to 20 seconds for `GET /ping` to return 200, and stops it on teardown: `SIGTERM`, wait for its `exit` event, and `SIGKILL` if it has not exited after 5 seconds.
+- Tests use the base URL `http://127.0.0.1:3997` and call it with `fetch`. They never import code from `backend/`.
+- Tests validate bodies with `contract/contract-helper.ts` too, imported as `../contract/contract-helper.js` (`assertMatchesContract`, or `assertMatchesSchema('Error', body)` for 404 and 405 responses outside the contract).
+- Tests must not depend on data left by other tests: use unique titles and authors and generated valid ISBNs.
+- Cover every row of §4.2 and every rule in §4.7 that a request from outside can trigger: status, headers, exact `message` and `issue`, and detail order. Two behaviours cannot be triggered from outside the process (an unexpected failure → `500 INTERNAL_ERROR`, and a body that cannot be read → `could not be read`); checklist items 19 and 23 cover them in-process.
+
+Commit: `backend <n>: conformance suite` (continue the item numbering after 23).
+
+**Gate:** `npm run test:contract && npm run test:coverage -w backend && npm run smoke && npm run test:conformance && npm exec --no -- tsc -p tsconfig.json && npm run typecheck -w backend && npm run lint && npm run check:rules`
 Commit: `phase 2: backend`.
 
 ### Phase 3: Frontend
@@ -647,7 +679,7 @@ export function useDebouncedValue<T>(value: T, delayMs: number): T;
   - `App` debounces author and title search by 300 ms with `useDebouncedValue`; the status filter applies immediately.
   - The list reloads whenever the effective filters change and after `onCreated`.
 - **List** (`AssetList`):
-  - While loading: **Loading…**.
+  - **Loading…** replaces the table only on the first load; on later reloads the current table stays visible until the new data arrives. Each load gets an increasing request id; a response whose id is not the latest is ignored. Do not abort requests (aborted requests would log `error` lines).
   - On error: `role="alert"` **Could not load books.**
   - With no results: **No books match these filters.**
   - Otherwise a table with headers **Title**, **Author**, **ISBN**, **Status** and **Added**. ISBN `null` shows **—**, status shows its label, and **Added** shows `createdAt.slice(0, 10)`.
@@ -673,7 +705,8 @@ export function useDebouncedValue<T>(value: T, delayMs: number): T;
   - `'filters by status immediately'`: changing **Filter by status** sends `status=`;
   - `'shows the empty state'`: the empty state appears;
   - `'shows the load error'`: the error state appears;
-  - `'refreshes the list after registering a book'`: registering a book refreshes the list.
+  - `'refreshes the list after registering a book'`: registering a book refreshes the list;
+  - `'ignores a stale response'`: when an earlier request answers after a later one, the table shows the later response's books.
 - Where tests trigger logging, spy with `const info = vi.spyOn(console, 'info').mockImplementation(() => {})` (likewise for `error`) and assert on the returned spy. Never reference `console.*` directly in tests: ESLint's `no-console` rule applies to tests too.
 
 **Gate:** `npm run test -w frontend && npm run build -w frontend && npm run typecheck && npm run lint && npm run check:rules`
@@ -983,7 +1016,7 @@ Copy this into `BUILD_REPORT.md` and fill in every field.
 |---|---|---|---|---|
 | 0 Preflight | Node version check | | | |
 | 1 Scaffold | contract hash, contract:validate, tsc, lint, check:rules | | | |
-| 2 Backend | test:contract, test:coverage, smoke, tsc, typecheck, lint, check:rules | | | |
+| 2 Backend | test:contract, test:coverage, smoke, test:conformance, tsc, typecheck, lint, check:rules | | | |
 | 3 Frontend | frontend test, build, typecheck, lint, check:rules | | | |
 | 4 Verify | npm run verify, check-rules --report | | | |
 
