@@ -1,0 +1,258 @@
+openapi: 3.1.0
+info:
+  title: Library Asset Service
+  version: 1.0.0
+  description: Register books (assets) in a library and list them with filters.
+paths:
+  /ping:
+    get:
+      operationId: ping
+      summary: Liveness check
+      responses:
+        '200':
+          description: The service is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ping'
+  /assets:
+    post:
+      operationId: createAsset
+      summary: Register an asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAsset'
+      responses:
+        '201':
+          description: The asset was created.
+          headers:
+            Location:
+              description: Path of the new asset, relative to the API root.
+              required: true
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      operationId: listAssets
+      summary: List assets, optionally filtered
+      description: >-
+        Filters combine with AND. All filter values are trimmed. Unknown, repeated
+        or empty parameters are rejected with 400. Results are in creation order.
+      parameters:
+        - name: author
+          in: query
+          description: Case-insensitive exact match on author.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/Status'
+        - name: q
+          in: query
+          description: Case-insensitive substring match on title.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      responses:
+        '200':
+          description: Matching assets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetList'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /assets/{id}:
+    get:
+      operationId: getAsset
+      summary: Fetch one asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Asset id. Any value that is not an existing id returns 404.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The asset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  schemas:
+    Ping:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          const: ok
+    Status:
+      type: string
+      enum: [available, on_loan, lost]
+    NewAsset:
+      type: object
+      additionalProperties: false
+      required: [title, author]
+      properties:
+        title:
+          type: string
+          description: Trimmed, then 1-200 characters.
+        author:
+          type: string
+          description: Trimmed, then 1-100 characters.
+        isbn:
+          type: [string, 'null']
+          description: >-
+            ISBN-10 or ISBN-13. Spaces and hyphens are removed and a lower-case x is
+            upper-cased before the checksum is validated. Null or omitted means no ISBN.
+        status:
+          $ref: '#/components/schemas/Status'
+    Asset:
+      type: object
+      additionalProperties: false
+      required: [id, title, author, isbn, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        author:
+          type: string
+          minLength: 1
+          maxLength: 100
+        isbn:
+          type: [string, 'null']
+          pattern: '^(\d{9}[\dX]|\d{13})$'
+        status:
+          $ref: '#/components/schemas/Status'
+        createdAt:
+          type: string
+          format: date-time
+    AssetList:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_ERROR
+        - NOT_FOUND
+        - METHOD_NOT_ALLOWED
+        - CONFLICT
+        - PAYLOAD_TOO_LARGE
+        - UNSUPPORTED_MEDIA_TYPE
+        - INTERNAL_ERROR
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required: [field, issue]
+      properties:
+        field:
+          type: string
+          minLength: 1
+        issue:
+          type: string
+          minLength: 1
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              $ref: '#/components/schemas/ErrorCode'
+            message:
+              type: string
+              minLength: 1
+            details:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/ErrorDetail'
+          if:
+            properties:
+              code:
+                const: VALIDATION_ERROR
+          then:
+            required: [details]
+          else:
+            not:
+              required: [details]
+  responses:
+    ValidationError:
+      description: The request was invalid. `details` names each offending field or parameter.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: No such resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: An asset with this ISBN already exists.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    PayloadTooLarge:
+      description: The request body is larger than 10 kb.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnsupportedMediaType:
+      description: The request body is not application/json.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Unexpected failure. The message is always generic.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
