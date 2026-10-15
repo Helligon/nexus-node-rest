@@ -89,4 +89,11 @@ describe('GET /assets', () => {
     assertMatchesContract('GET', '/assets', 400, res.body);
     expectDetailFor(res, field);
   });
+
+  it('reports unknown parameters in query-string order, not object-key order', async () => {
+    const res = await api('GET', '/assets?zz=1&5=x');
+    expectError(res, 400, 'VALIDATION_ERROR');
+    const details = (res.body as { error: { details: Array<{ field: string }> } }).error.details;
+    expect(details.map((detail) => detail.field)).toEqual(['zz', '5']);
+  });
 });

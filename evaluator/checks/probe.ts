@@ -43,6 +43,7 @@ export const PROBE_STEPS: ProbeStep[] = [
   { name: 'list-none', method: 'GET', path: '/assets?q=zzzz' },
   { name: 'list-bad-status', method: 'GET', path: '/assets?status=borrowed' },
   { name: 'list-unknown-param', method: 'GET', path: '/assets?colour=red' },
+  { name: 'list-numeric-key', method: 'GET', path: '/assets?zz=1&5=x' },
   { name: 'list-repeated', method: 'GET', path: '/assets?author=a&author=b' },
   { name: 'get-a', method: 'GET', path: '/assets/{create-a}' },
   { name: 'get-missing', method: 'GET', path: `/assets/${MISSING_ID}` },

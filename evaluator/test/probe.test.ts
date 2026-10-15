@@ -27,6 +27,7 @@ const EXPECTED_STATUS: Record<string, number> = {
   'list-none': 200,
   'list-bad-status': 400,
   'list-unknown-param': 400,
+  'list-numeric-key': 400,
   'list-repeated': 400,
   'get-a': 200,
   'get-missing': 404,
@@ -73,6 +74,16 @@ describe('probe against the golden server', () => {
         details: [
           { field: 'title', issue: 'is required and must be a string' },
           { field: 'author', issue: 'is required and must be a string' },
+        ],
+      },
+    });
+    const numericKey = normalised.find((record) => record.name === 'list-numeric-key');
+    expect(numericKey?.body).toMatchObject({
+      error: {
+        code: 'VALIDATION_ERROR',
+        details: [
+          { field: 'zz', issue: 'is not a supported filter' },
+          { field: '5', issue: 'is not a supported filter' },
         ],
       },
     });
