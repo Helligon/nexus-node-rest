@@ -9,7 +9,7 @@ describe('normaliseIsbn', () => {
 
   it('leaves tabs and non-breaking spaces in place', () => {
     expect(normaliseIsbn('0306\t406152')).toBe('0306\t406152');
-    expect(normaliseIsbn('0306 406152')).toBe('0306 406152');
+    expect(normaliseIsbn('0306\u00a0406152')).toBe('0306\u00a0406152');
   });
 });
 
