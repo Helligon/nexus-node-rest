@@ -1,0 +1,87 @@
+$ npm run test:conformance
+
+> test:conformance
+> npm run build -w backend && vitest run --config conformance/vitest.config.ts
+
+
+> build
+> tsc -p tsconfig.build.json
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/work/conformance[39m
+
+{"level":"info","event":"http_response","method":"GET","path":"/ping","status":200,"durationMs":2.753125}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":4.522458}
+{"level":"info","event":"http_response","method":"GET","path":"/assets/ef91de3d-3279-4dd2-9b6d-99b4e105a17d","status":200,"durationMs":0.296083}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":1.0605}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.661459}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.203208}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.195583}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":409,"durationMs":0.290708}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.743917}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.865708}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.622208}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.463875}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.141583}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.159208}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.118333}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.137708}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.141708}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.135209}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.113959}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.346}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.219916}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":1.071291}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.893}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.635042}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":415,"durationMs":0.095667}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":415,"durationMs":0.081791}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":415,"durationMs":0.087333}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.120375}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":415,"durationMs":0.13125}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":415,"durationMs":0.858625}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.9015}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":400,"durationMs":0.406333}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":413,"durationMs":1.443917}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.120625}
+{"level":"info","event":"http_response","method":"DELETE","path":"/assets","status":405,"durationMs":1.148666}
+{"level":"info","event":"http_response","method":"PUT","path":"/assets","status":405,"durationMs":0.090458}
+{"level":"info","event":"http_response","method":"PATCH","path":"/assets","status":405,"durationMs":0.067167}
+ [32m✓[39m assets-create.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.293833}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.148833}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":0.130667}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.254917}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.133875}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.112917}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.143792}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.098542}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.094209}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.0875}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":400,"durationMs":0.119583}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":400,"durationMs":0.086666}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":400,"durationMs":0.121791}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":400,"durationMs":0.079667}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.090709}
+{"level":"info","event":"http_response","method":"GET","path":"/assets/00000000-0000-4000-8000-000000000000","status":404,"durationMs":0.103083}
+{"level":"info","event":"http_response","method":"GET","path":"/assets/nope","status":404,"durationMs":0.086084}
+{"level":"info","event":"http_response","method":"GET","path":"/assets/%E0%A4%A","status":404,"durationMs":0.130375}
+{"level":"info","event":"http_response","method":"POST","path":"/assets/abc","status":405,"durationMs":0.102542}
+{"level":"info","event":"http_response","method":"PUT","path":"/assets/abc","status":405,"durationMs":0.119125}
+{"level":"info","event":"http_response","method":"DELETE","path":"/assets/abc","status":405,"durationMs":0.110084}
+{"level":"info","event":"http_response","method":"GET","path":"/ping","status":200,"durationMs":0.090416}
+{"level":"info","event":"http_response","method":"POST","path":"/ping","status":405,"durationMs":0.092291}
+{"level":"info","event":"http_response","method":"GET","path":"/nope","status":404,"durationMs":0.111333}
+{"level":"info","event":"http_response","method":"OPTIONS","path":"/ping","status":204,"durationMs":0.113875}
+{"level":"info","event":"http_response","method":"OPTIONS","path":"/assets","status":204,"durationMs":0.041667}
+{"level":"info","event":"http_response","method":"OPTIONS","path":"/assets/x","status":204,"durationMs":0.053041}
+{"level":"info","event":"http_response","method":"OPTIONS","path":"/nope","status":204,"durationMs":0.05625}
+{"level":"info","event":"http_response","method":"OPTIONS","path":"/nope","status":204,"durationMs":0.039459}
+{"level":"info","event":"http_response","method":"GET","path":"/ping","status":200,"durationMs":0.074416}
+ [32m✓[39m assets-read.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m31 passed[39m[22m[90m (31)[39m
+[2m   Start at [22m 02:20:40
+[2m   Duration [22m 620ms[2m (transform 25ms, setup 0ms, import 150ms, tests 111ms, environment 0ms)[22m
+

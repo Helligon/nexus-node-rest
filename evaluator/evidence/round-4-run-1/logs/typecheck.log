@@ -1,0 +1,13 @@
+$ npm run typecheck
+
+> typecheck
+> tsc -p tsconfig.json && npm run typecheck --workspaces
+
+
+> typecheck
+> tsc -p tsconfig.json
+
+
+> typecheck
+> tsc -p tsconfig.json
+

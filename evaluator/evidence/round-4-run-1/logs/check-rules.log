@@ -1,0 +1,5 @@
+$ npm run check:rules
+
+> check:rules
+> node scripts/check-rules.mjs
+
