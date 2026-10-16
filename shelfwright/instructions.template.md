@@ -25,12 +25,12 @@ These override any habit or default you have.
    - Do not add `eslint-disable`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck` comments; do not skip, focus or invert tests in any form (`.skip`, `.skipIf`, `.runIf`, `.only`, `.todo`, `.fails`, including chained forms such as `it.concurrent.skip`); and do not add `istanbul`/`v8`/`c8 ignore` comments.
    - Do not delete or loosen a test to make it pass. Do not exclude files from coverage beyond what §6 allows.
    - `eslint.config.js` disables inline ESLint configuration, and `npm run check:rules` (§6.4) searches the sources for every token listed above. `scripts/check-rules.mjs` is the only file allowed to contain these tokens, as search patterns.
-4. **Dependencies are exact.** Use only the packages in the dependency table (§6.3), at exactly those versions, with no `^` or `~`. Do not add, remove or upgrade anything. Always pass `--ignore-scripts` to `npm install` and `npm ci`. Never run `npm audit fix`. Exact, known-safe versions avoid pulling a newly published compromised release. Never use `--force` or `--legacy-peer-deps`. If installation fails (for example ERESOLVE, or a version that does not exist), treat it as a gate failure under rule 2; record the exact error.
+4. **Dependencies are exact.** Use only the packages in the dependency table (§6.3), at exactly those versions, with no `^` or `~`. Do not add, remove or upgrade anything. Always pass `--ignore-scripts` to `npm install` and `npm ci` (§4.5 explains why). Never run `npm audit fix`. Never use `--force` or `--legacy-peer-deps`. If installation fails (for example ERESOLVE, or a version that does not exist), treat it as a gate failure under rule 2; record the exact error.
 5. **No outside code.** Download nothing except npm packages, through npm. Never pipe anything from the network into a shell. Never let npm download a tool in order to run it: run tools only through the npm scripts in §6.2, or with `npm exec --no -- <tool>`, which refuses to download anything.
 6. **No secrets.** The service has none. Configuration comes only from the environment variables in §4.4.
 7. **Logging is restricted** (§4.3). Only `backend/src/logger.ts` and `frontend/src/logger.ts` may use `console`. ESLint and `npm run check:rules` enforce this.
 8. **Where this file is silent,** choose the simplest option consistent with the contract and §4. Record every such choice under "Unspecified decisions" in `BUILD_REPORT.md`. There is nobody to ask.
-9. **Commit as you go.** In Phase 2, commit after each checklist item (`backend <n>: <behaviour>`). Commit after every gate (`phase <n>: <name>`).
+9. **Commit as you go,** at every point this file names a commit message.
 
 ### What not to do
 
@@ -40,21 +40,17 @@ Each of these mistakes is easy to make. The reference in parentheses points to w
 - Don't let body-parser client (4xx) errors that are not listed fall through to a 500 (Phase 2, §2.2).
 - Don't invent error wording. Use the exact texts in §4.7.
 - Don't count characters any way other than `.length` after `.trim()` (§4.1).
-- Don't silence linters or tests. Inline ESLint configuration is disabled, and `npm run check:rules` searches for suppressions (rule 3, §6.4).
-- Don't change or add versions or scripts. `npm run check:rules` compares them with §6.2 and §6.3.
 - Don't lower coverage or exclude files from it. `npm run check:rules` reads `backend/coverage/coverage-summary.json` and checks the pinned `include`/`exclude` lines in `backend/vitest.config.ts` and `frontend/vite.config.ts` (§6.1, §6.4).
 - Don't skip the frontend tests with the titles listed in Phase 3, §3.3.
 - Don't skip `README.md` or `BUILD_REPORT.md`. `node scripts/check-rules.mjs --report` checks both (Phase 4).
-- Don't run a tool in a way that lets npm download it. Use the npm scripts or `npm exec --no --` (rule 5).
 - Don't run the first install without `--before=2026-10-01T00:00:00Z` (Phase 1 step 3).
-- Don't use `--force` or `--legacy-peer-deps` (rule 4).
 - Don't add a fallback for `req.body` that no test can reach. `parseNewAsset` handles `undefined` (Phase 2, §2.2).
 - Don't let the smoke script leave a server running (Phase 2, §2.4).
 - Don't guess where form errors go (Phase 3, §3.2).
 - Don't send filters that are empty after trimming (Phase 3, §3.1).
 - Don't route OPTIONS yourself; cors answers it (§4.2).
 - Don't strip tabs, non-breaking spaces or other dashes from an ISBN. Remove only `/[ -]/g` (U+0020 space and U+002D hyphen-minus) (§4.1).
-- Don't read query parameters from `req.query` — use `URLSearchParams` on the raw query string so order and repeats are exact (§4.7).
+- Don't read query parameters from `req.query` (§4.7).
 - Don't report an empty key as `field: ""`. Use `body` or `query` (§4.7).
 - Don't show **Loading…** in place of the table on a reload, let a stale response overwrite a newer one, or abort requests (Phase 3, §3.2).
 - Don't rely only on in-process tests — run the conformance suite against `backend/dist/server.js` (Phase 2, §2.5).
@@ -143,8 +139,7 @@ Nothing else is logged: no startup banner and no debug output.
 |---|---|
 | Language | TypeScript (strict), ES modules everywhere. |
 | Libraries | Express 5, Zod 4, helmet, cors; React 19 + Vite 7; axios; Vitest 4 + Supertest; React Testing Library + MSW 2; Ajv for contract checks. |
-| Versions | Exact pins only. The pins were chosen from releases that had been public for at least 14 days; you do not need to check this. Exact, known-safe versions avoid newly published compromised releases, a risk that is more common now that agents install packages. The first install uses `npm install --ignore-scripts --before=2026-10-01T00:00:00Z`, which resolves every package, including transitive ones, to versions published before that date. Every build therefore gets the same dependency tree, whenever it runs. The resulting `package-lock.json` is committed, and later installs use `npm ci --ignore-scripts`. |
-| Install scripts | Disabled (`--ignore-scripts`) everywhere, to shrink the supply-chain attack surface. |
+| Versions | Exact pins only. The pins were chosen from releases that had been public for at least 14 days; you do not need to check this. Exact, known-safe versions avoid newly published compromised releases, a risk that is more common now that agents install packages. Install scripts are disabled (`--ignore-scripts`) everywhere, to shrink the supply-chain attack surface. The first install uses `npm install --ignore-scripts --before=2026-10-01T00:00:00Z`, which resolves every package, including transitive ones, to versions published before that date. Every build therefore gets the same dependency tree, whenever it runs. The resulting `package-lock.json` is committed, and later installs use `npm ci --ignore-scripts`. |
 | Test-driven development | Every behaviour starts as a failing test. This includes the contract tests, which you write yourself from `contract/openapi.yaml` before the code they check. |
 | Contract tests | `contract/contract-helper.ts` validates bodies against `contract/openapi.yaml`. Every backend HTTP test and every frontend mock response goes through it. |
 | Conformance suite | You write a black-box suite that runs the built server over HTTP and checks every row of §4.2 and every rule in §4.7 (status, headers, exact `message`/`issue`, detail order). It is not provided verbatim: deriving it from the contract and the decisions log is part of the job, and writing it yourself is how you prove the server matches them. Write each case before the code that satisfies it where possible. |
@@ -366,8 +361,7 @@ It checks:
    - There is no `peerDependencies`, `optionalDependencies`, `bundleDependencies`, `bundledDependencies`, `overrides` or `resolutions` field.
    - There is no `preinstall`, `install`, `postinstall` or `prepare` script.
 2. **Coverage.**
-   - `backend/vitest.config.ts` contains, as whole lines after trimming leading and trailing spaces, `include: ['test/**/*.test.ts'],`, `include: ['src/**/*.ts'],` and `exclude: ['src/server.ts'],`, and no other line containing `include` or `exclude`.
-   - `frontend/vite.config.ts` contains, as a whole line after trimming, `include: ['src/**/*.test.{ts,tsx}'],`, and no other line containing `include` or `exclude`.
+   - `backend/vitest.config.ts` and `frontend/vite.config.ts` contain the `include`/`exclude` lines pinned for them in §6.1, each as a whole line after trimming leading and trailing spaces, and no other line containing `include` or `exclude`.
    - Only if `backend/coverage/coverage-summary.json` exists (it does not in Phase 1): it parses the file and requires `total.lines.pct`, `total.branches.pct`, `total.functions.pct` and `total.statements.pct` each `=== 100`, and an entry for every `backend/src/**/*.ts` file except `backend/src/server.ts`. The report's keys are absolute paths: a file has an entry when some key, passed through `fs.realpathSync` and then `path.relative` from the real path of the repository root, equals its path (with `/` separators). Summary keys whose file no longer exists are reported as a problem (`stale coverage report: run npm run test:coverage -w backend`), not passed to realpath. If `check:rules` reports coverage from an old run, re-run `npm run test:coverage -w backend`.
 3. **Suppressions.** It scans the `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files under `backend/src`, `backend/test`, `frontend/src`, `contract`, `conformance` and `scripts`. It skips folders that do not exist yet, any `node_modules`, `dist` or `coverage` folder, and `scripts/check-rules.mjs` itself. A problem is any line containing:
    - `eslint-disable`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`;
@@ -395,7 +389,7 @@ Commit: `phase 0: preflight`.
 
 1. Copy the contract from Appendix A to `contract/openapi.yaml`, byte-for-byte. Take every line after the line consisting of four backticks followed by `yaml`, up to but not including the next line consisting of exactly four backticks, and keep the final newline. The gate checks its SHA-256. If the check fails, copy it again rather than editing it.
 2. Create every file in §6.1, with `scripts` and dependencies exactly as in §6.2 and §6.3, and write `scripts/check-rules.mjs` (§6.4).
-3. Run `npm install --ignore-scripts --before=2026-10-01T00:00:00Z`. This creates `package-lock.json`. `--before` resolves every package, including transitive ones, to versions published before that date, so every build gets the same dependency tree regardless of when it runs. Use this exact command for any later `npm install` too.
+3. Run `npm install --ignore-scripts --before=2026-10-01T00:00:00Z`. This creates `package-lock.json` (§4.5 explains `--before`). Use this exact command for any later `npm install` too.
 
 **Gate:**
 
@@ -610,7 +604,7 @@ It exits 0 on success. On failure it throws (after the `finally` cleanup), which
 
 Write the conformance suite (§4.5) in `conformance/`. Run it with `npm run test:conformance`, which builds the backend first.
 - `conformance/vitest.config.ts` is as in §6.1.
-- `conformance/global-setup.ts` starts `node backend/dist/server.js` with `PORT=3997` added to the environment (spawned with `process.execPath`, as in §2.4), waits up to 20 seconds for `GET /ping` to return 200, and stops it on teardown: `SIGTERM`, wait for its `exit` event, and `SIGKILL` if it has not exited after 5 seconds. Before spawning, fail if something already answers `/ping` on port 3997. If the child exits before `/ping` answers, or readiness times out, kill the child and fail.
+- `conformance/global-setup.ts` starts and stops `backend/dist/server.js` with the same lifecycle as the smoke script (§2.4: spawn, port check, readiness, failure handling, `SIGTERM`/`SIGKILL` teardown), on port `3997` instead of 3999. It stops the server on teardown.
 - Tests use the base URL `http://127.0.0.1:3997` and call it with `fetch`. They never import code from `backend/`.
 - Tests validate bodies with `contract/contract-helper.ts` too, imported as `../contract/contract-helper.js` (`assertMatchesContract`, or `assertMatchesSchema('Error', body)` for 404 and 405 responses outside the contract).
 - Tests must not depend on data left by other tests: use unique titles and authors and generated valid ISBNs.
@@ -726,10 +720,9 @@ Commit: `phase 3: frontend`.
    - `## Observability` (the two log events)
    - `## Decisions` (point to §4 of `instructions.md`)
    - `## Not included` (the table in §4.6)
-2. Run `npm run verify` and fix anything it reports.
-3. Run `npm audit --audit-level=high` and record its summary in `BUILD_REPORT.md` under "npm audit". A high or critical advisory does not fail the build (you may not change versions); list each one under "Deviations from instructions" with the package and advisory id.
-4. Fill in `BUILD_REPORT.md` from Appendix B. Every phase gets **PASS** or **FAIL**, with the number of attempts. Phase 4's result is that of the gate below; record **PASS** when `npm run verify` passed in step 2, and correct it if the gate then fails.
-5. Run the gate last. If it fails, fix the cause, update `BUILD_REPORT.md` (each gate run counts as an attempt) and run it again.
+2. Run `npm audit --audit-level=high` and record its summary in `BUILD_REPORT.md` under "npm audit". A high or critical advisory does not fail the build (you may not change versions); list each one under "Deviations from instructions" with the package and advisory id.
+3. Fill in `BUILD_REPORT.md` from Appendix B. Every phase gets **PASS** or **FAIL**, with the number of attempts. Phase 4's result is that of the gate below, which checks this file: record **PASS** before running it, and change it if the gate fails.
+4. Run the gate last. If it fails, fix the cause, update `BUILD_REPORT.md` (each gate run counts as an attempt) and run it again.
 
 **Gate:** `npm run verify && node scripts/check-rules.mjs --report`
 Commit: `phase 4: verify and report`.

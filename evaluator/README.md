@@ -44,7 +44,7 @@ app; nothing here is ever visible to a builder.
 | Acceptance suite | instructions §4 and the contract |
 | Probe vs golden (exact messages, issues and detail order) | instructions §4 (including §4.7) and the contract |
 | Log rules | instructions §4.3 |
-| npm audit (advisory, not a gate) | instructions §7 Phase 4 step 3 |
+| npm audit (advisory, not a gate) | instructions §7 Phase 4 step 2 |
 
 Re-score a run with `./score-run.sh rounds/<round>/run-<i>`. Regenerate a review with
 `npx tsx report/review.ts rounds/<round> --force`; this overwrites your notes.
