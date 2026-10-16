@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { parse } from 'yaml';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
@@ -9,7 +9,7 @@ interface Doc {
   components: { schemas: Record<string, unknown>; responses: Record<string, { content: Record<string, { schema: unknown }> }> };
 }
 
-const doc = parse(readFileSync(fileURLToPath(new URL('./openapi.yaml', import.meta.url)), 'utf8')) as Doc;
+const doc = parse(readFileSync(join(import.meta.dirname, 'openapi.yaml'), 'utf8')) as Doc;
 const ajv = new Ajv2020({ strict: false, allErrors: true });
 addFormats.default(ajv);
 ajv.addSchema(doc, 'openapi.json');
