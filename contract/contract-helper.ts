@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
@@ -9,7 +10,7 @@ interface OpenApiDoc {
   components: { schemas: Record<string, unknown>; responses: Record<string, { content: Record<string, { schema: unknown }> }> };
 }
 
-const specPath = fileURLToPath(new URL('./openapi.yaml', import.meta.url));
+const specPath = join(dirname(fileURLToPath(import.meta.url)), 'openapi.yaml');
 const doc = parse(readFileSync(specPath, 'utf8')) as OpenApiDoc;
 
 const ajv = new Ajv2020({ strict: false, allErrors: true });

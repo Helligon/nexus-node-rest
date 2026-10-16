@@ -1,0 +1,57 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  color: #1f2933;
+  background: #f7f8fa;
+}
+main {
+  max-width: 54rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+section {
+  margin-bottom: 2rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+  max-width: 24rem;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+input,
+select {
+  padding: 0.4rem;
+  font: inherit;
+}
+input[aria-invalid='true'],
+select[aria-invalid='true'] {
+  border-color: #b42318;
+}
+.field-error,
+[role='alert'] {
+  color: #b42318;
+  margin: 0.25rem 0 0;
+}
+[role='status'] {
+  color: #067647;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #d9dee5;
+}
