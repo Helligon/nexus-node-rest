@@ -1,0 +1,152 @@
+{
+  "generatedAt": "2026-10-16T10:38:05.508Z",
+  "instructions": {
+    "ok": true
+  },
+  "contract": {
+    "ok": true
+  },
+  "manifests": {
+    "ok": true,
+    "problems": []
+  },
+  "sourceScan": {
+    "ok": true,
+    "findings": []
+  },
+  "gates": [
+    {
+      "name": "install",
+      "command": "npm ci --ignore-scripts",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 5545,
+      "log": "logs/install.log"
+    },
+    {
+      "name": "check-rules",
+      "command": "npm run check:rules",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 79,
+      "log": "logs/check-rules.log"
+    },
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 2352,
+      "log": "logs/typecheck.log"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 941,
+      "log": "logs/lint.log"
+    },
+    {
+      "name": "contract-validate",
+      "command": "npm run contract:validate",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 262,
+      "log": "logs/contract-validate.log"
+    },
+    {
+      "name": "contract-tests",
+      "command": "npm run test:contract",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 401,
+      "log": "logs/contract-tests.log"
+    },
+    {
+      "name": "backend-coverage",
+      "command": "rm -rf backend/coverage && npm run test:coverage -w backend",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 1091,
+      "log": "logs/backend-coverage.log"
+    },
+    {
+      "name": "conformance",
+      "command": "npm run test:conformance",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 1361,
+      "log": "logs/conformance.log"
+    },
+    {
+      "name": "frontend-tests",
+      "command": "npm run test -w frontend",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 3208,
+      "log": "logs/frontend-tests.log"
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build -w frontend",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 1698,
+      "log": "logs/frontend-build.log"
+    },
+    {
+      "name": "smoke",
+      "command": "npm run smoke",
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 868,
+      "log": "logs/smoke.log"
+    }
+  ],
+  "coverage": {
+    "ok": true,
+    "totals": {
+      "lines": 100,
+      "branches": 100,
+      "functions": 100,
+      "statements": 100
+    },
+    "problems": []
+  },
+  "audit": {
+    "name": "audit",
+    "command": "npm audit --audit-level=high",
+    "ok": true,
+    "exitCode": 0,
+    "durationMs": 378,
+    "log": "logs/audit.log"
+  },
+  "oracle": {
+    "name": "acceptance",
+    "command": "npx vitest run --config oracle/acceptance/vitest.config.ts",
+    "ok": true,
+    "exitCode": 0,
+    "durationMs": 845,
+    "log": "logs/acceptance.log"
+  },
+  "logs": {
+    "acceptance": {
+      "ok": true,
+      "responseLines": 80,
+      "errorLines": 0,
+      "problems": []
+    },
+    "probe": {
+      "ok": true,
+      "responseLines": 30,
+      "errorLines": 0,
+      "problems": []
+    }
+  },
+  "probe": true,
+  "buildReport": true,
+  "commits": 7,
+  "uncommitted": 0,
+  "problems": []
+}

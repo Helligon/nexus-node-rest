@@ -1,0 +1,13 @@
+$ npm run smoke
+
+> smoke
+> npm run build -w backend && tsx scripts/smoke.ts
+
+
+> build
+> tsc -p tsconfig.build.json
+
+{"level":"info","event":"http_response","method":"GET","path":"/ping","status":200,"durationMs":2.6}
+{"level":"info","event":"http_response","method":"POST","path":"/assets","status":201,"durationMs":6.5}
+{"level":"info","event":"http_response","method":"GET","path":"/assets/75e689d4-92ed-482d-80f6-f86a1c2816fa","status":200,"durationMs":0.3}
+{"level":"info","event":"http_response","method":"GET","path":"/assets","status":200,"durationMs":0.4}

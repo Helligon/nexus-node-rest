@@ -1,0 +1,5 @@
+$ npm run contract:validate
+
+> contract:validate
+> tsx contract/validate-spec.ts
+

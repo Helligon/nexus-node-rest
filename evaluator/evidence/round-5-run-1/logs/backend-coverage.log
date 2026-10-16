@@ -1,0 +1,47 @@
+$ rm -rf backend/coverage && npm run test:coverage -w backend
+
+> test:coverage
+> vitest run --coverage
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/work/backend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m test/logger.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/repo/asset-repository.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m test/domain/isbn.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/domain/parse-new-asset.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m test/domain/parse-asset-filter.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m test/http/ping.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m test/http/platform.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [32m✓[39m test/http/read-assets.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+ [32m✓[39m test/http/create-asset.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+[2m      Tests [22m [1m[32m63 passed[39m[22m[90m (63)[39m
+[2m   Start at [22m 10:37:55
+[2m   Duration [22m 829ms[2m (transform 343ms, setup 0ms, import 2.61s, tests 208ms, environment 0ms)[22m
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |     100 |      100 |     100 |     100 |                   
+ src               |     100 |      100 |     100 |     100 |                   
+  app.ts           |     100 |      100 |     100 |     100 |                   
+  errors.ts        |     100 |      100 |     100 |     100 |                   
+  logger.ts        |     100 |      100 |     100 |     100 |                   
+ src/domain        |     100 |      100 |     100 |     100 |                   
+  asset.ts         |     100 |      100 |     100 |     100 |                   
+ src/middleware    |     100 |      100 |     100 |     100 |                   
+  error-handler.ts |     100 |      100 |     100 |     100 |                   
+  ...ot-allowed.ts |     100 |      100 |     100 |     100 |                   
+  not-found.ts     |     100 |      100 |     100 |     100 |                   
+  request-log.ts   |     100 |      100 |     100 |     100 |                   
+  require-json.ts  |     100 |      100 |     100 |     100 |                   
+ src/repo          |     100 |      100 |     100 |     100 |                   
+  ...repository.ts |     100 |      100 |     100 |     100 |                   
+ src/routes        |     100 |      100 |     100 |     100 |                   
+  assets.ts        |     100 |      100 |     100 |     100 |                   
+  ping.ts          |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
