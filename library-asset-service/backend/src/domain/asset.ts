@@ -32,11 +32,11 @@ export function isValidIsbn(normalised: string): boolean {
   return false;
 }
 
+// Lengths are UTF-16 code units (`.length`), as §4.1 requires; Zod's min/max count differently.
+const lengthWithin = (max: number) => (v: string) => v.length >= 1 && v.length <= max;
+
 const trimmedText = (max: number) =>
-  z
-    .string({ error: 'type' })
-    .refine((v) => v.trim().length >= 1 && v.trim().length <= max, { error: 'length' })
-    .transform((v) => v.trim());
+  z.string({ error: 'type' }).trim().refine(lengthWithin(max), { error: 'length' });
 
 const titleSchema = trimmedText(200);
 const authorSchema = trimmedText(100);
@@ -45,6 +45,8 @@ const isbnSchema = z
   .transform(normaliseIsbn)
   .refine(isValidIsbn);
 const statusSchema = z.enum(ASSET_STATUSES);
+
+const ASSET_FIELDS = ['title', 'author', 'isbn', 'status'] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -67,13 +69,13 @@ export function parseNewAsset(body: unknown): ParseResult<NewAsset> {
 
   const rawIsbn = input.isbn ?? null;
   const isbn = rawIsbn === null ? null : isbnSchema.safeParse(rawIsbn);
-  if (isbn !== null && !isbn.success) issues.push({ field: 'isbn', issue: ISBN_ISSUE });
+  if (isbn?.success === false) issues.push({ field: 'isbn', issue: ISBN_ISSUE });
 
   const status = 'status' in input ? statusSchema.safeParse(input.status) : undefined;
   if (status !== undefined && !status.success) issues.push({ field: 'status', issue: STATUS_ISSUE });
 
   for (const key of Object.keys(input)) {
-    if (!['title', 'author', 'isbn', 'status'].includes(key)) {
+    if (!(ASSET_FIELDS as readonly string[]).includes(key)) {
       issues.push({ field: key === '' ? 'body' : key, issue: 'is not allowed' });
     }
   }
@@ -84,17 +86,17 @@ export function parseNewAsset(body: unknown): ParseResult<NewAsset> {
     value: {
       title: title.data,
       author: author.data,
-      isbn: isbn === null ? null : (isbn.data as string),
+      isbn: isbn?.data ?? null,
       status: status?.success ? status.data : 'available',
     },
   };
 }
 
-const textFilter = (max: number) => z.string().transform((v) => v.trim()).pipe(z.string().min(1).max(max));
+const textFilter = (max: number) => z.string().trim().refine(lengthWithin(max));
 
 const FILTER_SCHEMAS = {
   author: textFilter(100),
-  status: z.string().transform((v) => v.trim()).pipe(statusSchema),
+  status: z.string().trim().pipe(statusSchema),
   q: textFilter(200),
 } as const;
 const FILTER_ISSUES = {
