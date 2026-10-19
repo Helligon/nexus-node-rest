@@ -15,27 +15,26 @@ function toApiError(error: unknown): unknown {
   );
 }
 
+async function request<T>(send: () => Promise<{ data: T }>): Promise<T> {
+  try {
+    return (await send()).data;
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
 export async function listAssets(filters: AssetFilterValues): Promise<Asset[]> {
   const params: Record<string, string> = {};
   for (const [key, value] of Object.entries(filters)) {
     const trimmed = value.trim();
     if (trimmed !== '') params[key] = trimmed;
   }
-  try {
-    const response = await http.get<{ data: Asset[] }>('/assets', { params });
-    return response.data.data;
-  } catch (error) {
-    throw toApiError(error);
-  }
+  const body = await request(() => http.get<{ data: Asset[] }>('/assets', { params }));
+  return body.data;
 }
 
 export async function createAsset(input: NewAsset): Promise<Asset> {
   const { isbn, ...rest } = input;
   const body: NewAsset = isbn ? { ...rest, isbn } : rest;
-  try {
-    const response = await http.post<Asset>('/assets', body);
-    return response.data;
-  } catch (error) {
-    throw toApiError(error);
-  }
+  return request(() => http.post<Asset>('/assets', body));
 }

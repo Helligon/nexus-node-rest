@@ -1,11 +1,10 @@
-import type { Asset, AssetStatus } from '../api/types';
+import { STATUS_LABELS } from '../api/types';
+import type { Asset } from '../api/types';
 
 export type ListState =
   | { kind: 'loading' }
   | { kind: 'error' }
   | { kind: 'ready'; assets: Asset[] };
-
-const STATUS_LABELS: Record<AssetStatus, string> = { available: 'Available', on_loan: 'On loan', lost: 'Lost' };
 
 export function AssetList({ state }: { state: ListState }) {
   if (state.kind === 'loading') return <p>Loading…</p>;

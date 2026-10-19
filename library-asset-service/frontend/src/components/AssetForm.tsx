@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { createAsset } from '../api/assets';
-import { ApiError } from '../api/types';
+import { ApiError, ASSET_STATUSES, STATUS_LABELS } from '../api/types';
 import type { Asset, AssetStatus } from '../api/types';
 
 const FIELDS = ['title', 'author', 'isbn', 'status'] as const;
@@ -89,9 +89,11 @@ export function AssetForm({ onCreated }: { onCreated: (asset: Asset) => void }) 
         <div className="field">
           <label htmlFor="status">Status</label>
           <select id="status" value={status} onChange={(e) => setStatus(e.target.value as AssetStatus)} {...describe('status')}>
-            <option value="available">Available</option>
-            <option value="on_loan">On loan</option>
-            <option value="lost">Lost</option>
+            {ASSET_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))}
           </select>
           {error('status')}
         </div>

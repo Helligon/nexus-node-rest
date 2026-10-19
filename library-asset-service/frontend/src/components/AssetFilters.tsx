@@ -1,3 +1,4 @@
+import { ASSET_STATUSES, STATUS_LABELS } from '../api/types';
 import type { AssetStatus } from '../api/types';
 
 export interface FilterInputs { author: string; status: '' | AssetStatus; q: string }
@@ -17,9 +18,11 @@ export function AssetFilters({ values, onChange }: { values: FilterInputs; onCha
           onChange={(e) => onChange({ ...values, status: e.target.value as FilterInputs['status'] })}
         >
           <option value="">Any status</option>
-          <option value="available">Available</option>
-          <option value="on_loan">On loan</option>
-          <option value="lost">Lost</option>
+          {ASSET_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABELS[s]}
+            </option>
+          ))}
         </select>
       </div>
       <div className="field">
